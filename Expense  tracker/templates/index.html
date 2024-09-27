@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Sentiment Analysis</h1>
+        <form id="reviewForm">
+            <textarea id="reviewText" placeholder="Enter your review"></textarea>
+            <button type="submit">Analyze</button>
+        </form>
+        <div id="result">
+            <h2>Sentiment: <span id="sentiment"></span></h2>
+            <h3>Comment: <span id="comment"></span></h3>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
