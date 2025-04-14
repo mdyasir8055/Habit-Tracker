@@ -3,21 +3,752 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sentiment Analysis</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Habit Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+            line-height: 1.5;
+        }
+
+        body.dark {
+            background-color: black;
+            color: white;
+        }
+
+        body.light {
+            background-color: white;
+            color: black;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 80rem;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.75rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            color: inherit;
+            cursor: pointer;
+            z-index: 50;
+            transition: background-color 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .sparkle {
+            display: inline-block;
+            font-size: 2rem;
+            animation: bounce 2s infinite;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin: 0.5rem 0;
+            background: linear-gradient(to right, #fff, #ccc);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        body.light .header h1 {
+            background: linear-gradient(to right, #9333ea, #ec4899);
+            -webkit-background-clip: text;
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 32rem;
+            margin: 0 auto;
+        }
+
+        body.light .header p {
+            color: rgba(0, 0, 0, 0.6);
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(16px);
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        body.light .card {
+            background: rgba(255, 255, 255, 0.5); /* 0.5 makes it 50% transparent */
+
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-header h2 {
+            
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .card-header p {
+            color: #9333ea;
+            font-size: 0.875rem;
+        }
+
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        /* Form Styles */
+        .form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: inherit;
+            font-size: 1rem;
+        }
+
+        body.light .form-group input,
+        body.light .form-group select {
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            background: white;color: solid rgba(255, 255, 255, 0.2);
+        }
+
+        .button {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Statistics */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .stat-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background: rgba(86, 86, 86, 0.05);
+        }
+
+        .stat-icon {
+            font-size: 1.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #9333ea;        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        /* Habits List */
+        .habits-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .habit-item {
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .habit-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .toggle-button {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: transparent;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-button.completed {
+            background: #10b981;
+            border-color: #10b981;
+        }
+
+        .habit-info {
+            flex: 1;
+        }
+
+        .habit-name {
+            font-weight: 500;
+        }
+
+        .habit-meta {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .delete-button {
+            opacity: 0;
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 1.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .habit-item:hover .delete-button {
+            opacity: 1;
+        }
+
+        .habit-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: #10b981;
+            width: 100%;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+
+        .habit-progress.completed {
+            transform: scaleX(1);
+        }
+
+        /* Category Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: capitalize;
+        }
+
+        .tab.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Animations */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Canvas Backgrounds */
+        #starsCanvas,
+        #neonCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .tabs {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
-<body>
+<body class="dark">
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <!-- Canvas Backgrounds -->
+    <canvas id="starsCanvas"></canvas>
+    <canvas id="neonCanvas"></canvas>
+
+    <!-- Main Content -->
     <div class="container">
-        <h1>Sentiment Analysis</h1>
-        <form id="reviewForm">
-            <textarea id="reviewText" placeholder="Enter your review"></textarea>
-            <button type="submit">Analyze</button>
-        </form>
-        <div id="result">
-            <h2>Sentiment: <span id="sentiment"></span></h2>
-            <h3>Comment: <span id="comment"></span></h3>
+        <header class="header">
+            <div class="sparkle">✨</div>
+            <h1>Habit Tracker</h1>
+            <p>Build better habits, one day at a time. Track your progress and stay motivated.</p>
+        </header>
+
+        <div class="grid">
+            <!-- Add Habit Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Add New Habit</h2>
+                    <p>Create a new habit to track</p>
+                </div>
+                <div class="card-content">
+                    <form id="habit-form" class="form">
+                        <div class="form-group">
+                            <label for="habit-name">Habit Name</label>
+                            <input type="text" id="habit-name" required placeholder="Enter habit name">
+                        </div>
+                        <div class="form-group">
+                            <label for="habit-category">Category</label>
+                            <select id="habit-category" required>
+                                <option value="personal">Personal</option>
+                                <option value="work">Work</option>
+                                <option value="health">Health</option>
+                                <option value="fitness">Fitness</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="habit-frequency">Frequency</label>
+                            <select id="habit-frequency" required>
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="button">Add Habit</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Statistics</h2>
+                    <p>Your habit tracking overview</p>
+                </div>
+                <div class="card-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-icon">📊</span>
+                            <div>
+                                <p class="stat-label">Total Habits</p>
+                                <p class="stat-value" id="total-habits">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon">✅</span>
+                            <div>
+                                <p class="stat-label">Completed Today</p>
+                                <p class="stat-value" id="completed-today">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Habits List -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Your Habits</h2>
+                <p id="completion-rate">Progress: 0%</p>
+            </div>
+            <div class="card-content">
+                <div class="tabs" id="category-tabs">
+                    <button class="tab active" data-category="all">All</button>
+                    <button class="tab" data-category="personal">Personal</button>
+                    <button class="tab" data-category="work">Work</button>
+                    <button class="tab" data-category="health">Health</button>
+                    <button class="tab" data-category="fitness">Fitness</button>
+                </div>
+                <div class="habits-container" id="habits-container">
+                    <!-- Habits will be inserted here -->
+                </div>
+            </div>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+    <script>
+        // Theme management
+        class ThemeManager {
+            constructor() {
+                this.theme = localStorage.getItem('theme') || 'dark';
+                this.toggleButton = document.getElementById('themeToggle');
+                this.setupEventListeners();
+                this.applyTheme();
+            }
+
+            setupEventListeners() {
+                this.toggleButton.addEventListener('click', () => {
+                    this.theme = this.theme === 'dark' ? 'light' : 'dark';
+                    this.applyTheme();
+                    localStorage.setItem('theme', this.theme);
+                });
+            }
+
+            applyTheme() {
+                document.body.className = this.theme;
+                this.toggleButton.textContent = this.theme === 'dark' ? '🌙' : '☀️';
+                
+                // Toggle canvas visibility
+                document.getElementById('starsCanvas').style.display = 
+                    this.theme === 'dark' ? 'block' : 'none';
+                document.getElementById('neonCanvas').style.display = 
+                    this.theme === 'light' ? 'block' : 'none';
+            }
+        }
+
+        // Stars Animation
+        class StarsAnimation {
+            constructor() {
+                this.canvas = document.getElementById('starsCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.stars = [];
+                this.numStars = 200;
+                this.setupCanvas();
+                this.createStars();
+                this.animate();
+            }
+
+            setupCanvas() {
+                const resize = () => {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                };
+                resize();
+                window.addEventListener('resize', resize);
+            }
+
+            createStars() {
+                for (let i = 0; i < this.numStars; i++) {
+                    this.stars.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        size: Math.random() * 2,
+                        speed: Math.random() * 3 + 1
+                    });
+                }
+            }
+
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.fillStyle = 'white';
+
+                this.stars.forEach(star => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+
+                    star.y += star.speed;
+                    if (star.y > this.canvas.height) {
+                        star.y = 0;
+                        star.x = Math.random() * this.canvas.width;
+                    }
+                });
+
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // Neon Animation
+        class NeonAnimation {
+            constructor() {
+                this.canvas = document.getElementById('neonCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.orbs = [];
+                this.colors = ['#ff00ff', '#00ffff', '#ff3377', '#33ff77'];
+                this.setupCanvas();
+                this.createOrbs();
+                this.animate();
+            }
+
+            setupCanvas() {
+                const resize = () => {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                };
+                resize();
+                window.addEventListener('resize', resize);
+            }
+
+            createOrbs() {
+                for (let i = 0; i < 8; i++) {
+                    this.orbs.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        radius: Math.random() * 100 + 50,
+                        color: this.colors[Math.floor(Math.random() * this.colors.length)],
+                        vx: (Math.random() - 0.5) * 0.5,
+                        vy: (Math.random() - 0.5) * 0.5
+                    });
+                }
+            }
+
+            animate() {
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.01)';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                this.orbs.forEach(orb => {
+                    const gradient = this.ctx.createRadialGradient(
+                        orb.x, orb.y, 0,
+                        orb.x, orb.y, orb.radius
+                    );
+                    gradient.addColorStop(0, `${orb.color}33`);
+                    gradient.addColorStop(1, 'transparent');
+
+                    this.ctx.beginPath();
+                    this.ctx.fillStyle = gradient;
+                    this.ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI * 2);
+                    this.ctx.fill();
+
+                    orb.x += orb.vx;
+                    orb.y += orb.vy;
+
+                    if (orb.x < 0 || orb.x > this.canvas.width) orb.vx *= -1;
+                    if (orb.y < 0 || orb.y > this.canvas.height) orb.vy *= -1;
+                });
+
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // Habit Management
+        class HabitTracker {
+            constructor() {
+                this.habits = JSON.parse(localStorage.getItem('habits') || '[]');
+                this.activeCategory = 'all';
+                this.setupEventListeners();
+                this.render();
+            }
+
+            setupEventListeners() {
+                document.getElementById('habit-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const name = document.getElementById('habit-name').value;
+                    const category = document.getElementById('habit-category').value;
+                    const frequency = document.getElementById('habit-frequency').value;
+                    
+                    const habit = {
+                        id: crypto.randomUUID(),
+                        name,
+                        category,
+                        frequency,
+                        completedDates: [],
+                        createdAt: new Date().toISOString(),
+                        streak: 0
+                    };
+
+                    this.habits.push(habit);
+                    this.saveHabits();
+                    this.render();
+                    e.target.reset();
+                });
+
+                document.getElementById('category-tabs').addEventListener('click', (e) => {
+                    if (e.target.classList.contains('tab')) {
+                        document.querySelectorAll('.tab').forEach(tab => 
+                            tab.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.activeCategory = e.target.dataset.category;
+                        this.render();
+                    }
+                });
+            }
+
+            saveHabits() {
+                localStorage.setItem('habits', JSON.stringify(this.habits));
+            }
+
+            toggleHabit(id) {
+                const today = new Date().toISOString().split('T')[0];
+                this.habits = this.habits.map(habit => {
+                    if (habit.id === id) {
+                        const isCompleted = habit.completedDates.includes(today);
+                        return {
+                            ...habit,
+                            completedDates: isCompleted
+                                ? habit.completedDates.filter(date => date !== today)
+                                : [...habit.completedDates, today],
+                            streak: isCompleted
+                                ? Math.max(0, habit.streak - 1)
+                                : habit.streak + 1
+                        };
+                    }
+                    return habit;
+                });
+                
+                this.saveHabits();
+                this.render();
+            }
+
+            deleteHabit(id) {
+                this.habits = this.habits.filter(h => h.id !== id);
+                this.saveHabits();
+                this.render();
+            }
+
+            updateStats() {
+                const today = new Date().toISOString().split('T')[0];
+                const completedToday = this.habits.filter(h => 
+                    h.completedDates.includes(today)
+                ).length;
+                
+                document.getElementById('total-habits').textContent = this.habits.length;
+                document.getElementById('completed-today').textContent = completedToday;
+                
+                const completionRate = this.habits.length
+                    ? Math.round((completedToday / this.habits.length) * 100)
+                    : 0;
+                document.getElementById('completion-rate').textContent = 
+                    `Progress: ${completionRate}%`;
+            }
+
+            render() {
+                const container = document.getElementById('habits-container');
+                container.innerHTML = '';
+                
+                const filteredHabits = this.activeCategory === 'all'
+                    ? this.habits
+                    : this.habits.filter(h => h.category === this.activeCategory);
+
+                const today = new Date().toISOString().split('T')[0];
+
+                if (filteredHabits.length === 0) {
+                    container.innerHTML = '<p class="no-habits">No habits found</p>';
+                } else {
+                    filteredHabits.forEach(habit => {
+                        const isCompleted = habit.completedDates.includes(today);
+                        const habitElement = document.createElement('div');
+                        habitElement.className = 'habit-item';
+                        habitElement.innerHTML = `
+                            <div class="habit-content">
+                                <button class="toggle-button ${isCompleted ? 'completed' : ''}"
+                                        onclick="habitTracker.toggleHabit('${habit.id}')">
+                                    ${isCompleted ? '✓' : '○'}
+                                </button>
+                                <div class="habit-info">
+                                    <p class="habit-name">${habit.name}</p>
+                                    <p class="habit-meta">
+                                        ${habit.frequency} • ${habit.category}
+                                        ${habit.streak > 0 ? ` • 🏆 ${habit.streak} day streak` : ''}
+                                    </p>
+                                </div>
+                                <button class="delete-button" 
+                                        onclick="habitTracker.deleteHabit('${habit.id}')">
+                                    🗑️
+                                </button>
+                            </div>
+                            <div class="habit-progress ${isCompleted ? 'completed' : ''}"></div>
+                        `;
+                        container.appendChild(habitElement);
+                    });
+                }
+                
+                this.updateStats();
+            }
+        }
+
+        // Initialize everything
+        const themeManager = new ThemeManager();
+        const starsAnimation = new StarsAnimation();
+        const neonAnimation = new NeonAnimation();
+        const habitTracker = new HabitTracker();
+    </script>
 </body>
 </html>
