@@ -10,7 +10,7 @@
         /* Sticky Notes Specific Styles */
         .notes-container {
             position: relative;
-            min-height: 600px;
+            min-height: 500px;
             width: 100%;
             background: rgba(255, 255, 255, 0.05);
             border-radius: 1rem;
@@ -18,18 +18,31 @@
             overflow: hidden;
         }
         
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+        
         .sticky-note {
-            position: absolute;
-            width: 220px;
-            min-height: 220px;
+            position: relative;
+            width: 100%;
+            min-height: 180px;
             padding: 1rem;
             border-radius: 0.5rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            cursor: move;
+            cursor: pointer;
             z-index: 1;
             transition: transform 0.2s, box-shadow 0.2s;
             display: flex;
             flex-direction: column;
+        }
+        
+        .sticky-note.draggable {
+            position: absolute;
+            width: 220px;
+            cursor: move;
         }
         
         .sticky-note:hover {
@@ -140,6 +153,56 @@
         .add-note-btn:hover {
             transform: scale(1.1);
             background: #7e22ce;
+        }
+        
+        .view-mode-toggle {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            display: flex;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            z-index: 10;
+        }
+        
+        .view-mode-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .view-mode-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        .view-mode-btn.active {
+            background: #9333ea;
+            color: white;
+        }
+        
+        body.light .view-mode-toggle {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        body.light .view-mode-btn {
+            background: rgba(0, 0, 0, 0.05);
+            color: rgba(0, 0, 0, 0.7);
+        }
+        
+        body.light .view-mode-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+            color: black;
         }
         
         .note-edit-modal {
@@ -346,6 +409,17 @@
         <!-- Notes Container -->
         <div class="notes-container" id="notesContainer">
             <p class="no-notes" id="noNotes">No notes yet. Click the + button to create your first note!</p>
+            <div class="notes-grid" id="notesGrid"></div>
+        </div>
+        
+        <!-- View Mode Toggle -->
+        <div class="view-mode-toggle">
+            <button class="view-mode-btn active" id="gridViewBtn" title="Grid View">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            </button>
+            <button class="view-mode-btn" id="freeViewBtn" title="Free Positioning">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l4-4"></path><path d="M5 6v3h3"></path><path d="M19 9l-4-4"></path><path d="M16 6h3v3"></path><path d="M5 15l4 4"></path><path d="M5 18v-3h3"></path><path d="M19 15l-4 4"></path><path d="M16 18h3v-3"></path></svg>
+            </button>
         </div>
 
         <!-- Add Note Button -->
@@ -532,9 +606,11 @@
                 this.isDragging = false;
                 this.draggedNote = null;
                 this.dragOffset = { x: 0, y: 0 };
+                this.viewMode = 'grid'; // 'grid' or 'free'
                 
                 // DOM Elements
                 this.notesContainer = document.getElementById('notesContainer');
+                this.notesGrid = document.getElementById('notesGrid');
                 this.noNotesMessage = document.getElementById('noNotes');
                 this.addNoteBtn = document.getElementById('addNoteBtn');
                 this.noteEditModal = document.getElementById('noteEditModal');
@@ -544,6 +620,8 @@
                 this.noteEditColors = document.getElementById('noteEditColors');
                 this.noteEditClose = document.getElementById('noteEditClose');
                 this.noteEditCancel = document.getElementById('noteEditCancel');
+                this.gridViewBtn = document.getElementById('gridViewBtn');
+                this.freeViewBtn = document.getElementById('freeViewBtn');
                 
                 // Initialize
                 this.initEventListeners();
@@ -575,15 +653,63 @@
                     });
                 });
                 
-                // Drag functionality for notes container
-                this.notesContainer.addEventListener('mousedown', (e) => this.handleMouseDown(e));
-                document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-                document.addEventListener('mouseup', () => this.handleMouseUp());
+                // View mode toggle
+                this.gridViewBtn.addEventListener('click', () => this.setViewMode('grid'));
+                this.freeViewBtn.addEventListener('click', () => this.setViewMode('free'));
+                
+                // Drag functionality for notes container (only in free mode)
+                this.notesContainer.addEventListener('mousedown', (e) => {
+                    if (this.viewMode === 'free') {
+                        this.handleMouseDown(e);
+                    }
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (this.viewMode === 'free' && this.isDragging) {
+                        this.handleMouseMove(e);
+                    }
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    if (this.viewMode === 'free' && this.isDragging) {
+                        this.handleMouseUp();
+                    }
+                });
                 
                 // Touch events for mobile
-                this.notesContainer.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
-                document.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
-                document.addEventListener('touchend', () => this.handleTouchEnd());
+                this.notesContainer.addEventListener('touchstart', (e) => {
+                    if (this.viewMode === 'free') {
+                        this.handleTouchStart(e);
+                    }
+                }, { passive: false });
+                
+                document.addEventListener('touchmove', (e) => {
+                    if (this.viewMode === 'free' && this.isDragging) {
+                        this.handleTouchMove(e);
+                    }
+                }, { passive: false });
+                
+                document.addEventListener('touchend', () => {
+                    if (this.viewMode === 'free' && this.isDragging) {
+                        this.handleTouchEnd();
+                    }
+                });
+            }
+            
+            setViewMode(mode) {
+                this.viewMode = mode;
+                
+                // Update UI
+                if (mode === 'grid') {
+                    this.gridViewBtn.classList.add('active');
+                    this.freeViewBtn.classList.remove('active');
+                } else {
+                    this.gridViewBtn.classList.remove('active');
+                    this.freeViewBtn.classList.add('active');
+                }
+                
+                // Re-render notes
+                this.renderNotes();
             }
             
             async loadNotes() {
@@ -601,46 +727,64 @@
             }
             
             renderNotes() {
-                // Clear container except for the no notes message
-                const children = Array.from(this.notesContainer.children);
-                children.forEach(child => {
-                    if (child !== this.noNotesMessage) {
-                        child.remove();
-                    }
-                });
-                
                 // Show/hide no notes message
                 if (this.notes.length === 0) {
                     this.noNotesMessage.style.display = 'block';
+                    this.notesGrid.style.display = 'none';
                 } else {
                     this.noNotesMessage.style.display = 'none';
                     
-                    // Render each note
-                    this.notes.forEach(note => {
-                        const noteEl = this.createNoteElement(note);
-                        this.notesContainer.appendChild(noteEl);
-                    });
+                    if (this.viewMode === 'grid') {
+                        // Grid view
+                        this.notesGrid.style.display = 'grid';
+                        this.notesGrid.innerHTML = '';
+                        
+                        // Remove any free-positioned notes
+                        const freeNotes = Array.from(this.notesContainer.querySelectorAll('.sticky-note.draggable'));
+                        freeNotes.forEach(note => note.remove());
+                        
+                        // Render each note in grid
+                        this.notes.forEach(note => {
+                            const noteEl = this.createNoteElement(note, false);
+                            this.notesGrid.appendChild(noteEl);
+                        });
+                    } else {
+                        // Free positioning view
+                        this.notesGrid.style.display = 'none';
+                        
+                        // Remove existing notes
+                        const existingNotes = Array.from(this.notesContainer.querySelectorAll('.sticky-note.draggable'));
+                        existingNotes.forEach(note => note.remove());
+                        
+                        // Render each note with absolute positioning
+                        this.notes.forEach(note => {
+                            const noteEl = this.createNoteElement(note, true);
+                            this.notesContainer.appendChild(noteEl);
+                        });
+                    }
                 }
             }
             
-            createNoteElement(note) {
+            createNoteElement(note, draggable = false) {
                 const noteEl = document.createElement('div');
-                noteEl.className = 'sticky-note';
+                noteEl.className = draggable ? 'sticky-note draggable' : 'sticky-note';
                 noteEl.id = `note-${note.id}`;
                 noteEl.style.backgroundColor = note.color;
                 
-                // Set position
-                if (note.position) {
-                    noteEl.style.left = `${note.position.x}px`;
-                    noteEl.style.top = `${note.position.y}px`;
-                } else {
-                    // Random position if none is set
-                    const maxX = this.notesContainer.clientWidth - 220;
-                    const maxY = this.notesContainer.clientHeight - 220;
-                    const randomX = Math.max(0, Math.floor(Math.random() * maxX));
-                    const randomY = Math.max(0, Math.floor(Math.random() * maxY));
-                    noteEl.style.left = `${randomX}px`;
-                    noteEl.style.top = `${randomY}px`;
+                // Set position for draggable notes
+                if (draggable) {
+                    if (note.position) {
+                        noteEl.style.left = `${note.position.x}px`;
+                        noteEl.style.top = `${note.position.y}px`;
+                    } else {
+                        // Random position if none is set
+                        const maxX = this.notesContainer.clientWidth - 220;
+                        const maxY = this.notesContainer.clientHeight - 220;
+                        const randomX = Math.max(0, Math.floor(Math.random() * maxX));
+                        const randomY = Math.max(0, Math.floor(Math.random() * maxY));
+                        noteEl.style.left = `${randomX}px`;
+                        noteEl.style.top = `${randomY}px`;
+                    }
                 }
                 
                 // Create note content
@@ -662,15 +806,27 @@
                 const editBtn = noteEl.querySelector('.edit-btn');
                 const deleteBtn = noteEl.querySelector('.delete-btn');
                 
+                // Edit note
                 editBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.openNoteModal(note);
                 });
                 
+                // Delete note
                 deleteBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.deleteNote(note.id);
                 });
+                
+                // Click on note to edit (for non-draggable notes)
+                if (!draggable) {
+                    noteEl.addEventListener('click', (e) => {
+                        // Only trigger if not clicking on buttons
+                        if (!e.target.closest('.note-action-btn')) {
+                            this.openNoteModal(note);
+                        }
+                    });
+                }
                 
                 return noteEl;
             }
@@ -849,8 +1005,8 @@
             
             // Drag and drop functionality
             handleMouseDown(e) {
-                const noteEl = e.target.closest('.sticky-note');
-                if (!noteEl) return;
+                const noteEl = e.target.closest('.sticky-note.draggable');
+                if (!noteEl || e.target.closest('.note-action-btn')) return;
                 
                 // Prevent default to avoid text selection during drag
                 e.preventDefault();
@@ -866,6 +1022,8 @@
                 };
                 
                 // Bring to front
+                const allNotes = document.querySelectorAll('.sticky-note.draggable');
+                allNotes.forEach(note => note.style.zIndex = '1');
                 noteEl.style.zIndex = '10';
             }
             
@@ -897,16 +1055,24 @@
                 
                 this.updateNotePosition(noteId, position);
                 
+                // If clicked without dragging, open edit modal
+                if (Math.abs(this.dragOffset.x) < 5 && Math.abs(this.dragOffset.y) < 5) {
+                    const noteId = this.draggedNote.id.replace('note-', '');
+                    const note = this.notes.find(n => n.id === noteId);
+                    if (note) {
+                        this.openNoteModal(note);
+                    }
+                }
+                
                 // Reset
-                this.draggedNote.style.zIndex = '1';
                 this.isDragging = false;
                 this.draggedNote = null;
             }
             
             // Touch events for mobile
             handleTouchStart(e) {
-                const noteEl = e.target.closest('.sticky-note');
-                if (!noteEl) return;
+                const noteEl = e.target.closest('.sticky-note.draggable');
+                if (!noteEl || e.target.closest('.note-action-btn')) return;
                 
                 // Prevent default to avoid scrolling during drag
                 e.preventDefault();
@@ -923,7 +1089,15 @@
                 };
                 
                 // Bring to front
+                const allNotes = document.querySelectorAll('.sticky-note.draggable');
+                allNotes.forEach(note => note.style.zIndex = '1');
                 noteEl.style.zIndex = '10';
+                
+                // Store initial position for detecting taps
+                this.touchStartPos = {
+                    x: touch.clientX,
+                    y: touch.clientY
+                };
             }
             
             handleTouchMove(e) {
@@ -946,7 +1120,7 @@
                 this.draggedNote.style.top = `${Math.max(0, Math.min(maxY, y))}px`;
             }
             
-            handleTouchEnd() {
+            handleTouchEnd(e) {
                 if (!this.isDragging || !this.draggedNote) return;
                 
                 // Save position
@@ -958,10 +1132,25 @@
                 
                 this.updateNotePosition(noteId, position);
                 
+                // Check if this was a tap (not a drag)
+                if (this.touchStartPos) {
+                    const touch = e.changedTouches[0];
+                    const dx = Math.abs(touch.clientX - this.touchStartPos.x);
+                    const dy = Math.abs(touch.clientY - this.touchStartPos.y);
+                    
+                    // If movement was minimal, treat as a tap
+                    if (dx < 10 && dy < 10) {
+                        const note = this.notes.find(n => n.id === noteId);
+                        if (note) {
+                            this.openNoteModal(note);
+                        }
+                    }
+                }
+                
                 // Reset
-                this.draggedNote.style.zIndex = '1';
                 this.isDragging = false;
                 this.draggedNote = null;
+                this.touchStartPos = null;
             }
         }
         
