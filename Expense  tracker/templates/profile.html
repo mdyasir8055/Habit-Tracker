@@ -3,13 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile - Expense Tracker</title>
+    <title>Profile - Life Manager</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
 </head>
 <body class="dark">
     <!-- Theme Toggle Button -->
     <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="sparkle">✨</span>
+                <h1>Life Manager</h1>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('home') }}" class="nav-link">Dashboard</a>
+                <a href="{{ url_for('expenses_page') }}" class="nav-link">Expenses</a>
+                <a href="{{ url_for('habits_page') }}" class="nav-link">Habits</a>
+                <a href="{{ url_for('water_page') }}" class="nav-link">Water Tracker</a>
+                <a href="{{ url_for('notes_page') }}" class="nav-link">Notes</a>
+                <a href="{{ url_for('profile') }}" class="nav-link active">Profile</a>
+                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
 
     <!-- Canvas Backgrounds -->
     <canvas id="starsCanvas"></canvas>

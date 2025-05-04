@@ -265,6 +265,7 @@
                 <a href="{{ url_for('expenses_page') }}" class="nav-link">Expenses</a>
                 <a href="{{ url_for('habits_page') }}" class="nav-link">Habits</a>
                 <a href="{{ url_for('water_page') }}" class="nav-link">Water Tracker</a>
+                <a href="{{ url_for('notes_page') }}" class="nav-link">Notes</a>
                 <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
                 <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
             </div>
@@ -303,6 +304,13 @@
                 <div class="quick-action-text">
                     <h3>Log Water</h3>
                     <p>Stay hydrated</p>
+                </div>
+            </a>
+            <a href="{{ url_for('notes_page') }}" class="quick-action-card">
+                <div class="quick-action-icon">📝</div>
+                <div class="quick-action-text">
+                    <h3>Sticky Notes</h3>
+                    <p>Capture your thoughts</p>
                 </div>
             </a>
         </div>
@@ -412,6 +420,39 @@
                     </div>
                     
                     <a href="{{ url_for('water_page') }}" class="view-all-link">Water Tracker Details →</a>
+                </div>
+            </div>
+            
+            <!-- Notes Summary -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Sticky Notes</h2>
+                    <p>Your quick thoughts and reminders</p>
+                </div>
+                <div class="card-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-icon">📝</span>
+                            <div>
+                                <p class="stat-label">Total Notes</p>
+                                <p class="stat-value" id="total-notes">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon">🆕</span>
+                            <div>
+                                <p class="stat-label">Recent Updates</p>
+                                <p class="stat-value" id="recent-notes-count">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="section-title">Recent Notes</h3>
+                    <div class="recent-notes" id="recent-notes-list">
+                        <p class="no-data">Loading notes...</p>
+                    </div>
+                    
+                    <a href="{{ url_for('notes_page') }}" class="view-all-link">View All Notes →</a>
                 </div>
             </div>
         </div>
@@ -566,6 +607,7 @@
                     current: 0,
                     goal: 2000
                 };
+                this.notes = [];
                 
                 this.initEventListeners();
                 this.loadData();
@@ -586,7 +628,8 @@
                 await Promise.all([
                     this.loadExpenses(),
                     this.loadHabits(),
-                    this.loadWaterData()
+                    this.loadWaterData(),
+                    this.loadNotes()
                 ]);
             }
             
@@ -630,6 +673,84 @@
                 } catch (error) {
                     console.error('Error loading water data:', error);
                 }
+            }
+            
+            async loadNotes() {
+                try {
+                    const response = await fetch('/notes/data');
+                    if (response.ok) {
+                        this.notes = await response.json();
+                        this.updateNotesSummary();
+                    } else {
+                        console.error('Failed to load notes');
+                    }
+                } catch (error) {
+                    console.error('Error loading notes:', error);
+                }
+            }
+            
+            updateNotesSummary() {
+                // Update stats
+                document.getElementById('total-notes').textContent = this.notes.length;
+                
+                // Count notes updated in the last 24 hours
+                const oneDayAgo = new Date();
+                oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+                
+                const recentNotes = this.notes.filter(note => {
+                    const updatedAt = new Date(note.updated_at);
+                    return updatedAt > oneDayAgo;
+                });
+                
+                document.getElementById('recent-notes-count').textContent = recentNotes.length;
+                
+                // Display recent notes
+                const recentNotesContainer = document.getElementById('recent-notes-list');
+                
+                if (this.notes.length === 0) {
+                    recentNotesContainer.innerHTML = '<p class="no-data">No notes found</p>';
+                    return;
+                }
+                
+                // Sort notes by updated_at (most recent first)
+                const sortedNotes = [...this.notes].sort((a, b) => {
+                    return new Date(b.updated_at) - new Date(a.updated_at);
+                });
+                
+                // Take only the 3 most recent notes
+                const notesToShow = sortedNotes.slice(0, 3);
+                
+                recentNotesContainer.innerHTML = '';
+                
+                notesToShow.forEach(note => {
+                    const noteEl = document.createElement('div');
+                    noteEl.className = 'recent-item';
+                    noteEl.style.borderLeft = `4px solid ${note.color}`;
+                    
+                    const date = new Date(note.updated_at);
+                    const formattedDate = date.toLocaleDateString() + ' ' + 
+                                         date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    // Truncate content if it's too long
+                    const truncatedContent = note.content.length > 50 
+                        ? note.content.substring(0, 50) + '...' 
+                        : note.content;
+                    
+                    noteEl.innerHTML = `
+                        <div class="recent-item-icon" style="background-color: ${note.color}20;">
+                            📝
+                        </div>
+                        <div class="recent-item-info">
+                            <p class="recent-item-title">${note.title}</p>
+                            <p class="recent-item-meta">${truncatedContent}</p>
+                        </div>
+                        <div class="recent-item-meta">
+                            ${formattedDate}
+                        </div>
+                    `;
+                    
+                    recentNotesContainer.appendChild(noteEl);
+                });
             }
             
             updateExpenseSummary() {

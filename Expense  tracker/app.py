@@ -14,6 +14,7 @@ USERS_FILE = 'users.json'
 EXPENSES_FILE = 'expenses.json'
 HABITS_FILE = 'habits.json'
 WATER_FILE = 'water.json'
+NOTES_FILE = 'notes.json'
 
 # Helper functions
 def load_users():
@@ -55,6 +56,16 @@ def load_water():
 def save_water(water_data):
     with open(WATER_FILE, 'w') as f:
         json.dump(water_data, f)
+        
+def load_notes():
+    if os.path.exists(NOTES_FILE):
+        with open(NOTES_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+def save_notes(notes):
+    with open(NOTES_FILE, 'w') as f:
+        json.dump(notes, f)
 
 def login_required(f):
     @wraps(f)
@@ -407,6 +418,81 @@ def update_water_goal():
     save_water(water_data)
     
     return jsonify(water_data[user_id])
+
+# Notes routes
+@app.route('/notes')
+@login_required
+def notes_page():
+    return render_template('notes.html')
+
+@app.route('/notes/data', methods=['GET'])
+@login_required
+def get_notes():
+    notes = load_notes()
+    user_notes = [note for note in notes if note.get('user_id') == session['user_id']]
+    return jsonify(user_notes)
+
+@app.route('/notes/add', methods=['POST'])
+@login_required
+def add_note():
+    data = request.get_json()
+    
+    if not data or 'content' not in data:
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    notes = load_notes()
+    
+    new_note = {
+        'id': str(uuid.uuid4()),
+        'user_id': session['user_id'],
+        'content': data['content'],
+        'title': data.get('title', 'Untitled Note'),
+        'color': data.get('color', '#f9ca24'),
+        'position': data.get('position', {'x': 0, 'y': 0}),
+        'created_at': datetime.now().isoformat(),
+        'updated_at': datetime.now().isoformat()
+    }
+    
+    notes.append(new_note)
+    save_notes(notes)
+    
+    return jsonify(new_note), 201
+
+@app.route('/notes/<note_id>', methods=['PUT'])
+@login_required
+def update_note(note_id):
+    data = request.get_json()
+    notes = load_notes()
+    
+    for note in notes:
+        if note.get('id') == note_id and note.get('user_id') == session['user_id']:
+            if 'content' in data:
+                note['content'] = data['content']
+            if 'title' in data:
+                note['title'] = data['title']
+            if 'color' in data:
+                note['color'] = data['color']
+            if 'position' in data:
+                note['position'] = data['position']
+            
+            note['updated_at'] = datetime.now().isoformat()
+            save_notes(notes)
+            return jsonify(note)
+    
+    return jsonify({'error': 'Note not found or unauthorized'}), 404
+
+@app.route('/notes/<note_id>', methods=['DELETE'])
+@login_required
+def delete_note(note_id):
+    notes = load_notes()
+    
+    for i, note in enumerate(notes):
+        if note.get('id') == note_id and note.get('user_id') == session['user_id']:
+            del notes[i]
+            save_notes(notes)
+            return jsonify({'message': 'Note deleted successfully'})
+    
+    return jsonify({'error': 'Note not found or unauthorized'}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)

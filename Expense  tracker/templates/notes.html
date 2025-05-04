@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sticky Notes - Life Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Sticky Notes Specific Styles */
+        .notes-container {
+            position: relative;
+            min-height: 600px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        
+        .sticky-note {
+            position: absolute;
+            width: 220px;
+            min-height: 220px;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            cursor: move;
+            z-index: 1;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sticky-note:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            z-index: 2;
+        }
+        
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .note-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 0;
+            padding: 0;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .note-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .note-action-btn {
+            background: none;
+            border: none;
+            color: rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0.25rem;
+            border-radius: 50%;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        
+        .note-action-btn:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+            color: rgba(0, 0, 0, 0.8);
+        }
+        
+        .note-content {
+            flex: 1;
+            resize: none;
+            border: none;
+            background: none;
+            font-family: inherit;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            color: rgba(0, 0, 0, 0.8);
+            outline: none;
+            overflow-y: auto;
+            margin-bottom: 0.5rem;
+        }
+        
+        .note-footer {
+            font-size: 0.75rem;
+            color: rgba(0, 0, 0, 0.5);
+            text-align: right;
+        }
+        
+        .color-picker {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .color-option {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .color-option:hover, .color-option.active {
+            transform: scale(1.2);
+            border-color: rgba(0, 0, 0, 0.3);
+        }
+        
+        .add-note-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #9333ea;
+            color: white;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            z-index: 10;
+        }
+        
+        .add-note-btn:hover {
+            transform: scale(1.1);
+            background: #7e22ce;
+        }
+        
+        .note-edit-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        
+        .note-edit-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .note-edit-content {
+            width: 90%;
+            max-width: 500px;
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+        
+        .note-edit-modal.active .note-edit-content {
+            transform: translateY(0);
+        }
+        
+        .note-edit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .note-edit-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .note-edit-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: rgba(0, 0, 0, 0.5);
+            transition: color 0.2s;
+        }
+        
+        .note-edit-close:hover {
+            color: rgba(0, 0, 0, 0.8);
+        }
+        
+        .note-edit-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .note-edit-input {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            font-family: inherit;
+            font-size: 1rem;
+        }
+        
+        .note-edit-textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+        
+        .note-edit-colors {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .note-edit-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .note-edit-color:hover, .note-edit-color.active {
+            transform: scale(1.2);
+            border-color: rgba(0, 0, 0, 0.3);
+        }
+        
+        .note-edit-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .note-edit-cancel {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            background: white;
+            color: black;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .note-edit-cancel:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .note-edit-save {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            background: #9333ea;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .note-edit-save:hover {
+            background: #7e22ce;
+        }
+        
+        .no-notes {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-style: italic;
+        }
+        
+        body.light .no-notes {
+            color: rgba(0, 0, 0, 0.5);
+        }
+        
+        @media (max-width: 768px) {
+            .sticky-note {
+                width: 180px;
+                min-height: 180px;
+            }
+            
+            .add-note-btn {
+                bottom: 1.5rem;
+                right: 1.5rem;
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="dark">
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="sparkle">✨</span>
+                <h1>Life Manager</h1>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('home') }}" class="nav-link">Dashboard</a>
+                <a href="{{ url_for('expenses_page') }}" class="nav-link">Expenses</a>
+                <a href="{{ url_for('habits_page') }}" class="nav-link">Habits</a>
+                <a href="{{ url_for('water_page') }}" class="nav-link">Water Tracker</a>
+                <a href="{{ url_for('notes_page') }}" class="nav-link active">Notes</a>
+                <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
+                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Canvas Backgrounds -->
+    <canvas id="starsCanvas"></canvas>
+    <canvas id="neonCanvas"></canvas>
+
+    <!-- Main Content -->
+    <div class="container">
+        <header class="header">
+            <h1>Sticky Notes</h1>
+            <p>Create and organize your thoughts, ideas, and reminders.</p>
+        </header>
+
+        <!-- Notes Container -->
+        <div class="notes-container" id="notesContainer">
+            <p class="no-notes" id="noNotes">No notes yet. Click the + button to create your first note!</p>
+        </div>
+
+        <!-- Add Note Button -->
+        <button class="add-note-btn" id="addNoteBtn">+</button>
+
+        <!-- Note Edit Modal -->
+        <div class="note-edit-modal" id="noteEditModal">
+            <div class="note-edit-content">
+                <div class="note-edit-header">
+                    <h3 class="note-edit-title">Edit Note</h3>
+                    <button class="note-edit-close" id="noteEditClose">&times;</button>
+                </div>
+                <form class="note-edit-form" id="noteEditForm">
+                    <input type="text" class="note-edit-input" id="noteEditTitle" placeholder="Note Title" required>
+                    <textarea class="note-edit-input note-edit-textarea" id="noteEditContent" placeholder="Note Content" required></textarea>
+                    
+                    <div>
+                        <p>Choose Color:</p>
+                        <div class="note-edit-colors" id="noteEditColors">
+                            <div class="note-edit-color active" style="background-color: #f9ca24;" data-color="#f9ca24"></div>
+                            <div class="note-edit-color" style="background-color: #f0932b;" data-color="#f0932b"></div>
+                            <div class="note-edit-color" style="background-color: #eb4d4b;" data-color="#eb4d4b"></div>
+                            <div class="note-edit-color" style="background-color: #6ab04c;" data-color="#6ab04c"></div>
+                            <div class="note-edit-color" style="background-color: #7ed6df;" data-color="#7ed6df"></div>
+                            <div class="note-edit-color" style="background-color: #e056fd;" data-color="#e056fd"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="note-edit-actions">
+                        <button type="button" class="note-edit-cancel" id="noteEditCancel">Cancel</button>
+                        <button type="submit" class="note-edit-save">Save Note</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        
+        // Check for saved theme preference or default to dark
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        body.className = savedTheme;
+        themeToggle.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+        
+        // Toggle theme
+        themeToggle.addEventListener('click', () => {
+            if (body.className === 'dark') {
+                body.className = 'light';
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.className = 'dark';
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+        
+        // Canvas animations
+        class StarsAnimation {
+            constructor() {
+                this.canvas = document.getElementById('starsCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.stars = [];
+                this.resize();
+                this.init();
+                this.animate();
+                
+                window.addEventListener('resize', () => this.resize());
+            }
+            
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.init();
+            }
+            
+            init() {
+                this.stars = [];
+                const numStars = Math.floor(this.canvas.width * this.canvas.height / 1000);
+                
+                for (let i = 0; i < numStars; i++) {
+                    this.stars.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        radius: Math.random() * 1.5,
+                        opacity: Math.random() * 0.5 + 0.5
+                    });
+                }
+            }
+            
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.stars.forEach(star => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+                    this.ctx.fill();
+                    
+                    // Twinkle effect
+                    star.opacity += Math.random() * 0.01 - 0.005;
+                    star.opacity = Math.max(0.5, Math.min(1, star.opacity));
+                });
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        class NeonAnimation {
+            constructor() {
+                this.canvas = document.getElementById('neonCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.particles = [];
+                this.resize();
+                this.init();
+                this.animate();
+                
+                window.addEventListener('resize', () => this.resize());
+            }
+            
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.init();
+            }
+            
+            init() {
+                this.particles = [];
+                const numParticles = 50;
+                
+                for (let i = 0; i < numParticles; i++) {
+                    this.particles.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        size: Math.random() * 2 + 1,
+                        speedX: Math.random() * 1 - 0.5,
+                        speedY: Math.random() * 1 - 0.5,
+                        color: this.getRandomColor()
+                    });
+                }
+            }
+            
+            getRandomColor() {
+                const colors = ['#9333ea', '#ec4899', '#10b981', '#3b82f6'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.particles.forEach(particle => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    this.ctx.fillStyle = particle.color;
+                    this.ctx.fill();
+                    
+                    // Move particles
+                    particle.x += particle.speedX;
+                    particle.y += particle.speedY;
+                    
+                    // Bounce off edges
+                    if (particle.x < 0 || particle.x > this.canvas.width) {
+                        particle.speedX *= -1;
+                    }
+                    
+                    if (particle.y < 0 || particle.y > this.canvas.height) {
+                        particle.speedY *= -1;
+                    }
+                });
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        // Notes Manager Class
+        class NotesManager {
+            constructor() {
+                this.notes = [];
+                this.currentNoteId = null;
+                this.selectedColor = '#f9ca24';
+                this.isDragging = false;
+                this.draggedNote = null;
+                this.dragOffset = { x: 0, y: 0 };
+                
+                // DOM Elements
+                this.notesContainer = document.getElementById('notesContainer');
+                this.noNotesMessage = document.getElementById('noNotes');
+                this.addNoteBtn = document.getElementById('addNoteBtn');
+                this.noteEditModal = document.getElementById('noteEditModal');
+                this.noteEditForm = document.getElementById('noteEditForm');
+                this.noteEditTitle = document.getElementById('noteEditTitle');
+                this.noteEditContent = document.getElementById('noteEditContent');
+                this.noteEditColors = document.getElementById('noteEditColors');
+                this.noteEditClose = document.getElementById('noteEditClose');
+                this.noteEditCancel = document.getElementById('noteEditCancel');
+                
+                // Initialize
+                this.initEventListeners();
+                this.loadNotes();
+            }
+            
+            initEventListeners() {
+                // Add note button
+                this.addNoteBtn.addEventListener('click', () => this.openNoteModal());
+                
+                // Close modal buttons
+                this.noteEditClose.addEventListener('click', () => this.closeNoteModal());
+                this.noteEditCancel.addEventListener('click', () => this.closeNoteModal());
+                
+                // Form submission
+                this.noteEditForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveNoteFromModal();
+                });
+                
+                // Color selection
+                this.noteEditColors.querySelectorAll('.note-edit-color').forEach(colorEl => {
+                    colorEl.addEventListener('click', () => {
+                        this.noteEditColors.querySelectorAll('.note-edit-color').forEach(el => {
+                            el.classList.remove('active');
+                        });
+                        colorEl.classList.add('active');
+                        this.selectedColor = colorEl.getAttribute('data-color');
+                    });
+                });
+                
+                // Drag functionality for notes container
+                this.notesContainer.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+                document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                document.addEventListener('mouseup', () => this.handleMouseUp());
+                
+                // Touch events for mobile
+                this.notesContainer.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+                document.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+                document.addEventListener('touchend', () => this.handleTouchEnd());
+            }
+            
+            async loadNotes() {
+                try {
+                    const response = await fetch('/notes/data');
+                    if (response.ok) {
+                        this.notes = await response.json();
+                        this.renderNotes();
+                    } else {
+                        console.error('Failed to load notes');
+                    }
+                } catch (error) {
+                    console.error('Error loading notes:', error);
+                }
+            }
+            
+            renderNotes() {
+                // Clear container except for the no notes message
+                const children = Array.from(this.notesContainer.children);
+                children.forEach(child => {
+                    if (child !== this.noNotesMessage) {
+                        child.remove();
+                    }
+                });
+                
+                // Show/hide no notes message
+                if (this.notes.length === 0) {
+                    this.noNotesMessage.style.display = 'block';
+                } else {
+                    this.noNotesMessage.style.display = 'none';
+                    
+                    // Render each note
+                    this.notes.forEach(note => {
+                        const noteEl = this.createNoteElement(note);
+                        this.notesContainer.appendChild(noteEl);
+                    });
+                }
+            }
+            
+            createNoteElement(note) {
+                const noteEl = document.createElement('div');
+                noteEl.className = 'sticky-note';
+                noteEl.id = `note-${note.id}`;
+                noteEl.style.backgroundColor = note.color;
+                
+                // Set position
+                if (note.position) {
+                    noteEl.style.left = `${note.position.x}px`;
+                    noteEl.style.top = `${note.position.y}px`;
+                } else {
+                    // Random position if none is set
+                    const maxX = this.notesContainer.clientWidth - 220;
+                    const maxY = this.notesContainer.clientHeight - 220;
+                    const randomX = Math.max(0, Math.floor(Math.random() * maxX));
+                    const randomY = Math.max(0, Math.floor(Math.random() * maxY));
+                    noteEl.style.left = `${randomX}px`;
+                    noteEl.style.top = `${randomY}px`;
+                }
+                
+                // Create note content
+                noteEl.innerHTML = `
+                    <div class="note-header">
+                        <h3 class="note-title">${note.title}</h3>
+                        <div class="note-actions">
+                            <button class="note-action-btn edit-btn" title="Edit">✏️</button>
+                            <button class="note-action-btn delete-btn" title="Delete">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="note-content">${note.content.replace(/\n/g, '<br>')}</div>
+                    <div class="note-footer">
+                        ${this.formatDate(note.updated_at)}
+                    </div>
+                `;
+                
+                // Add event listeners
+                const editBtn = noteEl.querySelector('.edit-btn');
+                const deleteBtn = noteEl.querySelector('.delete-btn');
+                
+                editBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.openNoteModal(note);
+                });
+                
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.deleteNote(note.id);
+                });
+                
+                return noteEl;
+            }
+            
+            formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+            
+            openNoteModal(note = null) {
+                // Reset form
+                this.noteEditForm.reset();
+                
+                if (note) {
+                    // Edit existing note
+                    this.currentNoteId = note.id;
+                    this.noteEditTitle.value = note.title;
+                    this.noteEditContent.value = note.content;
+                    
+                    // Set color
+                    this.selectedColor = note.color;
+                    this.noteEditColors.querySelectorAll('.note-edit-color').forEach(colorEl => {
+                        if (colorEl.getAttribute('data-color') === note.color) {
+                            colorEl.classList.add('active');
+                        } else {
+                            colorEl.classList.remove('active');
+                        }
+                    });
+                } else {
+                    // New note
+                    this.currentNoteId = null;
+                    
+                    // Default color
+                    this.selectedColor = '#f9ca24';
+                    this.noteEditColors.querySelectorAll('.note-edit-color').forEach(colorEl => {
+                        if (colorEl.getAttribute('data-color') === '#f9ca24') {
+                            colorEl.classList.add('active');
+                        } else {
+                            colorEl.classList.remove('active');
+                        }
+                    });
+                }
+                
+                // Show modal
+                this.noteEditModal.classList.add('active');
+            }
+            
+            closeNoteModal() {
+                this.noteEditModal.classList.remove('active');
+            }
+            
+            async saveNoteFromModal() {
+                const title = this.noteEditTitle.value.trim();
+                const content = this.noteEditContent.value.trim();
+                
+                if (!title || !content) {
+                    alert('Please fill in all fields');
+                    return;
+                }
+                
+                if (this.currentNoteId) {
+                    // Update existing note
+                    await this.updateNote(this.currentNoteId, {
+                        title,
+                        content,
+                        color: this.selectedColor
+                    });
+                } else {
+                    // Create new note
+                    await this.addNote({
+                        title,
+                        content,
+                        color: this.selectedColor
+                    });
+                }
+                
+                this.closeNoteModal();
+            }
+            
+            async addNote(noteData) {
+                try {
+                    const response = await fetch('/notes/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(noteData)
+                    });
+                    
+                    if (response.ok) {
+                        const newNote = await response.json();
+                        this.notes.push(newNote);
+                        this.renderNotes();
+                    } else {
+                        console.error('Failed to add note');
+                    }
+                } catch (error) {
+                    console.error('Error adding note:', error);
+                }
+            }
+            
+            async updateNote(noteId, noteData) {
+                try {
+                    const response = await fetch(`/notes/${noteId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(noteData)
+                    });
+                    
+                    if (response.ok) {
+                        const updatedNote = await response.json();
+                        
+                        // Update note in local array
+                        const index = this.notes.findIndex(n => n.id === noteId);
+                        if (index !== -1) {
+                            this.notes[index] = updatedNote;
+                        }
+                        
+                        this.renderNotes();
+                    } else {
+                        console.error('Failed to update note');
+                    }
+                } catch (error) {
+                    console.error('Error updating note:', error);
+                }
+            }
+            
+            async deleteNote(noteId) {
+                if (!confirm('Are you sure you want to delete this note?')) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/notes/${noteId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        this.notes = this.notes.filter(note => note.id !== noteId);
+                        this.renderNotes();
+                    } else {
+                        console.error('Failed to delete note');
+                    }
+                } catch (error) {
+                    console.error('Error deleting note:', error);
+                }
+            }
+            
+            async updateNotePosition(noteId, position) {
+                try {
+                    const response = await fetch(`/notes/${noteId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ position })
+                    });
+                    
+                    if (response.ok) {
+                        const updatedNote = await response.json();
+                        
+                        // Update note in local array
+                        const index = this.notes.findIndex(n => n.id === noteId);
+                        if (index !== -1) {
+                            this.notes[index] = updatedNote;
+                        }
+                    } else {
+                        console.error('Failed to update note position');
+                    }
+                } catch (error) {
+                    console.error('Error updating note position:', error);
+                }
+            }
+            
+            // Drag and drop functionality
+            handleMouseDown(e) {
+                const noteEl = e.target.closest('.sticky-note');
+                if (!noteEl) return;
+                
+                // Prevent default to avoid text selection during drag
+                e.preventDefault();
+                
+                this.isDragging = true;
+                this.draggedNote = noteEl;
+                
+                // Calculate offset
+                const rect = noteEl.getBoundingClientRect();
+                this.dragOffset = {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+                
+                // Bring to front
+                noteEl.style.zIndex = '10';
+            }
+            
+            handleMouseMove(e) {
+                if (!this.isDragging || !this.draggedNote) return;
+                
+                // Calculate new position
+                const containerRect = this.notesContainer.getBoundingClientRect();
+                const x = e.clientX - containerRect.left - this.dragOffset.x;
+                const y = e.clientY - containerRect.top - this.dragOffset.y;
+                
+                // Apply constraints
+                const maxX = containerRect.width - this.draggedNote.offsetWidth;
+                const maxY = containerRect.height - this.draggedNote.offsetHeight;
+                
+                this.draggedNote.style.left = `${Math.max(0, Math.min(maxX, x))}px`;
+                this.draggedNote.style.top = `${Math.max(0, Math.min(maxY, y))}px`;
+            }
+            
+            handleMouseUp() {
+                if (!this.isDragging || !this.draggedNote) return;
+                
+                // Save position
+                const noteId = this.draggedNote.id.replace('note-', '');
+                const position = {
+                    x: parseInt(this.draggedNote.style.left),
+                    y: parseInt(this.draggedNote.style.top)
+                };
+                
+                this.updateNotePosition(noteId, position);
+                
+                // Reset
+                this.draggedNote.style.zIndex = '1';
+                this.isDragging = false;
+                this.draggedNote = null;
+            }
+            
+            // Touch events for mobile
+            handleTouchStart(e) {
+                const noteEl = e.target.closest('.sticky-note');
+                if (!noteEl) return;
+                
+                // Prevent default to avoid scrolling during drag
+                e.preventDefault();
+                
+                this.isDragging = true;
+                this.draggedNote = noteEl;
+                
+                // Calculate offset
+                const touch = e.touches[0];
+                const rect = noteEl.getBoundingClientRect();
+                this.dragOffset = {
+                    x: touch.clientX - rect.left,
+                    y: touch.clientY - rect.top
+                };
+                
+                // Bring to front
+                noteEl.style.zIndex = '10';
+            }
+            
+            handleTouchMove(e) {
+                if (!this.isDragging || !this.draggedNote) return;
+                
+                // Prevent default to avoid scrolling during drag
+                e.preventDefault();
+                
+                // Calculate new position
+                const touch = e.touches[0];
+                const containerRect = this.notesContainer.getBoundingClientRect();
+                const x = touch.clientX - containerRect.left - this.dragOffset.x;
+                const y = touch.clientY - containerRect.top - this.dragOffset.y;
+                
+                // Apply constraints
+                const maxX = containerRect.width - this.draggedNote.offsetWidth;
+                const maxY = containerRect.height - this.draggedNote.offsetHeight;
+                
+                this.draggedNote.style.left = `${Math.max(0, Math.min(maxX, x))}px`;
+                this.draggedNote.style.top = `${Math.max(0, Math.min(maxY, y))}px`;
+            }
+            
+            handleTouchEnd() {
+                if (!this.isDragging || !this.draggedNote) return;
+                
+                // Save position
+                const noteId = this.draggedNote.id.replace('note-', '');
+                const position = {
+                    x: parseInt(this.draggedNote.style.left),
+                    y: parseInt(this.draggedNote.style.top)
+                };
+                
+                this.updateNotePosition(noteId, position);
+                
+                // Reset
+                this.draggedNote.style.zIndex = '1';
+                this.isDragging = false;
+                this.draggedNote = null;
+            }
+        }
+        
+        // Initialize everything
+        const starsAnimation = new StarsAnimation();
+        const neonAnimation = new NeonAnimation();
+        const notesManager = new NotesManager();
+    </script>
+</body>
+</html>
