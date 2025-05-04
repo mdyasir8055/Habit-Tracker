@@ -349,6 +349,41 @@
                 </div>
             </div>
 
+            <!-- Notes Summary -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Sticky Notes</h2>
+                    <p>Your quick thoughts and reminders</p>
+                </div>
+                <div class="card-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-icon">📝</span>
+                            <div>
+                                <p class="stat-label">Total Notes</p>
+                                <p class="stat-value" id="total-notes">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon">🆕</span>
+                            <div>
+                                <p class="stat-label">Recent Updates</p>
+                                <p class="stat-value" id="recent-notes-count">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="section-title">Recent Notes</h3>
+                    <div class="recent-notes" id="recent-notes-list">
+                        <p class="no-data">Loading notes...</p>
+                    </div>
+                    
+                    <a href="{{ url_for('notes_page') }}" class="view-all-link">View All Notes →</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
             <!-- Habits Summary -->
             <div class="card">
                 <div class="card-header">
@@ -381,78 +416,45 @@
                     <a href="{{ url_for('habits_page') }}" class="view-all-link">View All Habits →</a>
                 </div>
             </div>
-        </div>
 
-        <!-- Water Tracker Summary -->
-        <div class="card">
-            <div class="card-header">
-                <h2>Water Intake</h2>
-                <p>Today's hydration</p>
-            </div>
-            <div class="card-content">
-                <div class="water-summary">
-                    <div class="water-progress-container">
-                        <div class="water-progress-circle">
-                            <svg width="120" height="120" viewBox="0 0 120 120">
-                                <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="12" />
-                                <circle cx="60" cy="60" r="54" fill="none" stroke="#3b82f6" stroke-width="12" 
-                                        stroke-dasharray="339.292" stroke-dashoffset="339.292" id="water-progress-circle" />
-                            </svg>
-                            <div class="water-progress-text">
-                                <span id="water-percentage">0%</span>
-                            </div>
-                        </div>
-                        <div class="water-stats">
-                            <div class="water-stat">
-                                <p class="water-stat-label">Current</p>
-                                <p class="water-stat-value" id="water-current">0 ml</p>
-                            </div>
-                            <div class="water-stat">
-                                <p class="water-stat-label">Goal</p>
-                                <p class="water-stat-value" id="water-goal">2000 ml</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="water-quick-add">
-                        <button class="water-add-button" data-amount="250">+250ml</button>
-                        <button class="water-add-button" data-amount="500">+500ml</button>
-                    </div>
-                    
-                    <a href="{{ url_for('water_page') }}" class="view-all-link">Water Tracker Details →</a>
-                </div>
-            </div>
-            
-            <!-- Notes Summary -->
+            <!-- Water Tracker Summary -->
             <div class="card">
                 <div class="card-header">
-                    <h2>Sticky Notes</h2>
-                    <p>Your quick thoughts and reminders</p>
+                    <h2>Water Intake</h2>
+                    <p>Today's hydration</p>
                 </div>
                 <div class="card-content">
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <span class="stat-icon">📝</span>
-                            <div>
-                                <p class="stat-label">Total Notes</p>
-                                <p class="stat-value" id="total-notes">0</p>
+                    <div class="water-summary">
+                        <div class="water-progress-container">
+                            <div class="water-progress-circle">
+                                <svg width="120" height="120" viewBox="0 0 120 120">
+                                    <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="12" />
+                                    <circle cx="60" cy="60" r="54" fill="none" stroke="#3b82f6" stroke-width="12" 
+                                            stroke-dasharray="339.292" stroke-dashoffset="339.292" id="water-progress-circle" />
+                                </svg>
+                                <div class="water-progress-text">
+                                    <span id="water-percentage">0%</span>
+                                </div>
+                            </div>
+                            <div class="water-stats">
+                                <div class="water-stat">
+                                    <p class="water-stat-label">Current</p>
+                                    <p class="water-stat-value" id="water-current">0 ml</p>
+                                </div>
+                                <div class="water-stat">
+                                    <p class="water-stat-label">Goal</p>
+                                    <p class="water-stat-value" id="water-goal">2000 ml</p>
+                                </div>
                             </div>
                         </div>
-                        <div class="stat-card">
-                            <span class="stat-icon">🆕</span>
-                            <div>
-                                <p class="stat-label">Recent Updates</p>
-                                <p class="stat-value" id="recent-notes-count">0</p>
-                            </div>
+                        
+                        <div class="water-quick-add">
+                            <button class="water-add-button" data-amount="250">+250ml</button>
+                            <button class="water-add-button" data-amount="500">+500ml</button>
                         </div>
+                        
+                        <a href="{{ url_for('water_page') }}" class="view-all-link">Water Tracker Details →</a>
                     </div>
-                    
-                    <h3 class="section-title">Recent Notes</h3>
-                    <div class="recent-notes" id="recent-notes-list">
-                        <p class="no-data">Loading notes...</p>
-                    </div>
-                    
-                    <a href="{{ url_for('notes_page') }}" class="view-all-link">View All Notes →</a>
                 </div>
             </div>
         </div>
