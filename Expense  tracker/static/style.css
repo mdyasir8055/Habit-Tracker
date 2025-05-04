@@ -1047,9 +1047,10 @@ body.light .no-habits {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 0.5rem;
     padding: 1rem;
-    min-height: 300px;
+    height: 250px;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 body.light .chart-wrapper {
@@ -1308,4 +1309,49 @@ input:checked + .toggle-label:before {
 
 .small-button:hover {
     background: #2563eb;
+}
+
+/* Transaction Type Toggle */
+.toggle-switch {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+    padding: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+body.light .toggle-switch {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.toggle-switch input[type="radio"] {
+    display: none;
+}
+
+.toggle-switch label {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.toggle-switch input[type="radio"]:checked + label {
+    background: #3b82f6;
+    color: white;
+}
+
+.toggle-switch input#income-type:checked + label {
+    background: #10b981;
+}
+
+/* Income styling */
+.income-amount {
+    color: #10b981 !important;
+}
+
+.expense-amount {
+    color: #ef4444 !important;
 }

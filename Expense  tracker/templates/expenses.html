@@ -138,14 +138,23 @@
                 <div class="card-content">
                     <form id="expense-form" class="form">
                         <div class="form-group">
+                            <label for="transaction-type">Transaction Type</label>
+                            <div class="toggle-switch">
+                                <input type="radio" id="expense-type" name="transaction-type" value="expense" checked>
+                                <label for="expense-type">Expense</label>
+                                <input type="radio" id="income-type" name="transaction-type" value="income">
+                                <label for="income-type">Income</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
                             <label for="expense-description">Description</label>
                             <input type="text" id="expense-description" required placeholder="What did you spend on?">
                         </div>
                         <div class="form-group">
                             <label for="expense-amount">Amount</label>
-                            <input type="number" id="expense-amount" required placeholder="How much did you spend?" step="0.01">
+                            <input type="number" id="expense-amount" required placeholder="How much?" step="0.01" min="0.01">
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" id="category-group">
                             <label for="expense-category">Category</label>
                             <select id="expense-category" required>
                                 <option value="food">Food</option>
@@ -154,6 +163,17 @@
                                 <option value="utilities">Utilities</option>
                                 <option value="shopping">Shopping</option>
                                 <option value="health">Health</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="income-category-group" style="display: none;">
+                            <label for="income-category">Income Category</label>
+                            <select id="income-category" required>
+                                <option value="salary">Salary</option>
+                                <option value="freelance">Freelance</option>
+                                <option value="investment">Investment</option>
+                                <option value="gift">Gift</option>
+                                <option value="refund">Refund</option>
                                 <option value="other">Other</option>
                             </select>
                         </div>
@@ -407,7 +427,29 @@
                 // Form submission
                 document.getElementById('expense-form').addEventListener('submit', (e) => {
                     e.preventDefault();
-                    this.addExpense();
+                    this.addTransaction();
+                });
+                
+                // Transaction type toggle
+                const expenseType = document.getElementById('expense-type');
+                const incomeType = document.getElementById('income-type');
+                const categoryGroup = document.getElementById('category-group');
+                const incomeCategoryGroup = document.getElementById('income-category-group');
+                
+                expenseType.addEventListener('change', () => {
+                    if (expenseType.checked) {
+                        categoryGroup.style.display = 'block';
+                        incomeCategoryGroup.style.display = 'none';
+                        document.getElementById('expense-description').placeholder = 'What did you spend on?';
+                    }
+                });
+                
+                incomeType.addEventListener('change', () => {
+                    if (incomeType.checked) {
+                        categoryGroup.style.display = 'none';
+                        incomeCategoryGroup.style.display = 'block';
+                        document.getElementById('expense-description').placeholder = 'Source of income';
+                    }
                 });
                 
                 // Category tabs
@@ -558,7 +600,7 @@
             renderCategoryChart() {
                 const ctx = document.getElementById('categoryChart').getContext('2d');
                 
-                // Group expenses by category
+                // Limit to top 5 categories for better performance
                 const categoryData = {};
                 this.expenses.forEach(expense => {
                     const category = expense.category;
@@ -568,9 +610,14 @@
                     categoryData[category] += expense.amount;
                 });
                 
+                // Sort categories by amount and take top 5
+                const sortedCategories = Object.entries(categoryData)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5);
+                
                 // Prepare data for chart
-                const labels = Object.keys(categoryData);
-                const data = Object.values(categoryData);
+                const labels = sortedCategories.map(item => item[0]);
+                const data = sortedCategories.map(item => item[1]);
                 
                 // Define colors for categories
                 const categoryColors = {
@@ -585,131 +632,157 @@
                 
                 const colors = labels.map(label => categoryColors[label] || '#6b7280');
                 
-                // Create or update chart
+                // Destroy previous chart if it exists to prevent memory leaks
                 if (this.categoryChart) {
-                    this.categoryChart.data.labels = labels;
-                    this.categoryChart.data.datasets[0].data = data;
-                    this.categoryChart.data.datasets[0].backgroundColor = colors;
-                    this.categoryChart.update();
-                } else {
-                    this.categoryChart = new Chart(ctx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                data: data,
-                                backgroundColor: colors,
-                                borderWidth: 0
-                            }]
+                    this.categoryChart.destroy();
+                }
+                
+                // Create new chart
+                this.categoryChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: colors,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 500 // Faster animations
                         },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    position: 'right',
-                                    labels: {
-                                        color: document.body.className === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.7)',
-                                        font: {
-                                            family: 'Inter'
-                                        }
-                                    }
-                                },
-                                tooltip: {
-                                    callbacks: {
-                                        label: (context) => {
-                                            const value = context.raw;
-                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                            const percentage = Math.round((value / total) * 100);
-                                            return `${context.label}: $${value.toFixed(2)} (${percentage}%)`;
-                                        }
-                                    }
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: document.body.className === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.7)',
+                                    font: {
+                                        family: 'Inter',
+                                        size: 10 // Smaller font
+                                    },
+                                    boxWidth: 10 // Smaller legend boxes
                                 }
                             },
-                            cutout: '70%'
-                        }
-                    });
-                }
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => {
+                                        const value = context.raw;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = Math.round((value / total) * 100);
+                                        return `${context.label}: $${value.toFixed(2)} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
             }
             
             renderTimeChart() {
                 const ctx = document.getElementById('timeChart').getContext('2d');
                 
-                // Group expenses by date
+                // Group expenses by date and limit to last 10 days for better performance
                 const timeData = {};
                 const sortedExpenses = [...this.expenses].sort((a, b) => new Date(a.date) - new Date(b.date));
                 
+                // Get only the last 10 days with data
+                const uniqueDates = [...new Set(sortedExpenses.map(e => e.date.split('T')[0]))];
+                const lastDates = uniqueDates.slice(-10); // Get last 10 days
+                
                 sortedExpenses.forEach(expense => {
                     const date = expense.date.split('T')[0];
-                    if (!timeData[date]) {
-                        timeData[date] = 0;
+                    if (lastDates.includes(date)) {
+                        if (!timeData[date]) {
+                            timeData[date] = 0;
+                        }
+                        timeData[date] += expense.amount;
                     }
-                    timeData[date] += expense.amount;
                 });
                 
-                // Prepare data for chart
-                const labels = Object.keys(timeData);
-                const data = Object.values(timeData);
+                // Format dates to be more readable
+                const formattedTimeData = {};
+                for (const [date, amount] of Object.entries(timeData)) {
+                    const formattedDate = new Date(date).toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
+                    formattedTimeData[formattedDate] = amount;
+                }
                 
-                // Create or update chart
+                // Prepare data for chart
+                const labels = Object.keys(formattedTimeData);
+                const data = Object.values(formattedTimeData);
+                
+                // Destroy previous chart if it exists to prevent memory leaks
                 if (this.timeChart) {
-                    this.timeChart.data.labels = labels;
-                    this.timeChart.data.datasets[0].data = data;
-                    this.timeChart.update();
-                } else {
-                    this.timeChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Daily Spending',
-                                data: data,
-                                borderColor: '#3b82f6',
-                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                borderWidth: 2,
-                                fill: true,
-                                tension: 0.4
-                            }]
+                    this.timeChart.destroy();
+                }
+                
+                // Create new chart
+                this.timeChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Daily Spending',
+                            data: data,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 500 // Faster animations
                         },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                x: {
-                                    grid: {
-                                        color: document.body.className === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-                                    },
-                                    ticks: {
-                                        color: document.body.className === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
-                                        maxRotation: 45,
-                                        minRotation: 45
-                                    }
-                                },
-                                y: {
-                                    grid: {
-                                        color: document.body.className === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-                                    },
-                                    ticks: {
-                                        color: document.body.className === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
-                                        callback: (value) => '$' + value
+                        scales: {
+                            x: {
+                                grid: {
+                             display: false // Hide grid lines for better performance
+                                       },
+                                ticks: {
+                                    color: document.body.className === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
+                                    maxRotation: 30,
+                                    minRotation: 30,
+                                    font: {
+                                        size: 10 // Smaller font
                                     }
                                 }
                             },
-                            plugins: {
-                                legend: {
-                                    display: false
+                            y: {
+                                grid: {
+                                    color: document.body.className === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+                                    tickBorderDash: [2, 2]
                                 },
-                                tooltip: {
-                                    callbacks: {
-                                        label: (context) => {
-                                            return `$${context.raw.toFixed(2)}`;
-                                        }
+                                ticks: {
+                                    color: document.body.className === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
+                                    callback: (value) => '$' + value,
+                                    font: {
+                                        size: 10 // Smaller font
+                                    },
+                                    maxTicksLimit: 5 // Limit number of ticks for better performance
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => {
+                                        return `$${context.raw.toFixed(2)}`;
                                     }
                                 }
                             }
                         }
-                    });
-                }
+                    }
+                });
             }
             
             updateAnalyticsSummary() {
