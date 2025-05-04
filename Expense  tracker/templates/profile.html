@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Expense Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
+</head>
+<body class="dark">
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <!-- Canvas Backgrounds -->
+    <canvas id="starsCanvas"></canvas>
+    <canvas id="neonCanvas"></canvas>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="auth-card profile-card">
+            <div class="auth-header">
+                <div class="sparkle">✨</div>
+                <h1>Your Profile</h1>
+                <p>Manage your account settings</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="profile-info">
+                <div class="profile-avatar">
+                    {{ user.username[0].upper() }}
+                </div>
+                <div class="profile-details">
+                    <h2>{{ user.username }}</h2>
+                    <p>{{ user.email }}</p>
+                    <p class="profile-joined">Joined on {{ user.created_at.split('T')[0] }}</p>
+                </div>
+            </div>
+
+            <div class="profile-tabs">
+                <button class="tab active" data-tab="account">Account Settings</button>
+                <button class="tab" data-tab="security">Security</button>
+            </div>
+
+            <div class="tab-content" id="account-tab">
+                <form class="auth-form" method="POST" action="{{ url_for('profile') }}">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" value="{{ user.username }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" value="{{ user.email }}" disabled>
+                        <p class="form-info">Email cannot be changed</p>
+                    </div>
+                    <button type="submit" class="auth-button">Update Profile</button>
+                </form>
+            </div>
+
+            <div class="tab-content hidden" id="security-tab">
+                <form class="auth-form" method="POST" action="{{ url_for('profile') }}">
+                    <div class="form-group">
+                        <label for="current_password">Current Password</label>
+                        <input type="password" id="current_password" name="current_password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password">New Password</label>
+                        <input type="password" id="new_password" name="new_password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm New Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required>
+                    </div>
+                    <button type="submit" class="auth-button">Change Password</button>
+                </form>
+            </div>
+            
+            <div class="auth-footer">
+                <a href="{{ url_for('home') }}" class="back-link">← Back to Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        
+        // Check for saved theme preference or default to dark
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        body.className = savedTheme;
+        themeToggle.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+        
+        // Toggle theme
+        themeToggle.addEventListener('click', () => {
+            if (body.className === 'dark') {
+                body.className = 'light';
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.className = 'dark';
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+        
+        // Canvas animations
+        class StarsAnimation {
+            constructor() {
+                this.canvas = document.getElementById('starsCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.stars = [];
+                this.resize();
+                this.init();
+                this.animate();
+                
+                window.addEventListener('resize', () => this.resize());
+            }
+            
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.init();
+            }
+            
+            init() {
+                this.stars = [];
+                const numStars = Math.floor(this.canvas.width * this.canvas.height / 1000);
+                
+                for (let i = 0; i < numStars; i++) {
+                    this.stars.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        radius: Math.random() * 1.5,
+                        opacity: Math.random() * 0.5 + 0.5
+                    });
+                }
+            }
+            
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.stars.forEach(star => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+                    this.ctx.fill();
+                    
+                    // Twinkle effect
+                    star.opacity += Math.random() * 0.01 - 0.005;
+                    star.opacity = Math.max(0.5, Math.min(1, star.opacity));
+                });
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        // Initialize animations
+        const starsAnimation = new StarsAnimation();
+        
+        // Tab functionality
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs
+                tabs.forEach(t => t.classList.remove('active'));
+                
+                // Add active class to clicked tab
+                tab.classList.add('active');
+                
+                // Hide all tab contents
+                tabContents.forEach(content => content.classList.add('hidden'));
+                
+                // Show the selected tab content
+                const tabId = tab.getAttribute('data-tab');
+                document.getElementById(`${tabId}-tab`).classList.remove('hidden');
+            });
+        });
+        
+        // Password validation
+        const newPassword = document.getElementById('new_password');
+        const confirmPassword = document.getElementById('confirm_password');
+        const securityForm = document.querySelector('#security-tab form');
+        
+        securityForm.addEventListener('submit', (e) => {
+            if (newPassword.value !== confirmPassword.value) {
+                e.preventDefault();
+                alert('New passwords do not match');
+            }
+        });
+    </script>
+</body>
+</html>
