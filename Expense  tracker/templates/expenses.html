@@ -6,6 +6,7 @@
     <title>Expenses - Life Manager</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="dark">
     <!-- Theme Toggle Button -->
@@ -41,6 +42,92 @@
             <p>Track your expenses and manage your finances with ease.</p>
         </header>
 
+        <!-- Data Visualization Section -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Expense Analytics</h2>
+                <p>Visualize your spending patterns</p>
+                <div class="card-actions">
+                    <div class="filter-container">
+                        <label for="chartPeriod">Period:</label>
+                        <select id="chartPeriod">
+                            <option value="month">This Month</option>
+                            <option value="year">This Year</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                    </div>
+                    <div class="filter-container" id="customDateContainer" style="display: none;">
+                        <label for="startDate">From:</label>
+                        <input type="date" id="startDate">
+                        <label for="endDate">To:</label>
+                        <input type="date" id="endDate">
+                        <button id="applyCustomDate" class="small-button">Apply</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-content">
+                <div class="charts-container">
+                    <div class="chart-wrapper">
+                        <h3>Spending by Category</h3>
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <h3>Spending Over Time</h3>
+                        <canvas id="timeChart"></canvas>
+                    </div>
+                </div>
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Spending:</span>
+                        <span class="stat-value" id="totalSpending">$0.00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Average Daily:</span>
+                        <span class="stat-value" id="averageDaily">$0.00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Highest Category:</span>
+                        <span class="stat-value" id="highestCategory">None</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Highest Day:</span>
+                        <span class="stat-value" id="highestDay">None</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Management Section -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Budget Management</h2>
+                <p>Set and track your spending limits</p>
+            </div>
+            <div class="card-content">
+                <div class="budget-overview">
+                    <div class="budget-summary">
+                        <h3>Monthly Budget</h3>
+                        <div class="budget-progress">
+                            <div class="budget-bar-container">
+                                <div class="budget-bar" id="budgetBar"></div>
+                            </div>
+                            <div class="budget-numbers">
+                                <span id="currentSpending">$0</span>
+                                <span id="budgetLimit">of $0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="budget-actions">
+                        <button id="setBudgetBtn" class="action-button">Set Budget</button>
+                        <button id="viewBudgetDetailsBtn" class="action-button">View Details</button>
+                    </div>
+                </div>
+                <div class="category-budgets" id="categoryBudgets">
+                    <!-- Category budgets will be populated here -->
+                </div>
+            </div>
+        </div>
+
         <div class="grid">
             <!-- Add Expense Form -->
             <div class="card">
@@ -73,6 +160,23 @@
                         <div class="form-group">
                             <label for="expense-date">Date</label>
                             <input type="date" id="expense-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="isRecurring">Recurring Expense</label>
+                            <div class="toggle-container">
+                                <input type="checkbox" id="isRecurring" name="isRecurring">
+                                <label for="isRecurring" class="toggle-label"></label>
+                            </div>
+                        </div>
+                        <div id="recurringOptions" class="form-group" style="display: none;">
+                            <label for="recurringFrequency">Frequency</label>
+                            <select id="recurringFrequency" name="recurringFrequency">
+                                <option value="weekly">Weekly</option>
+                                <option value="biweekly">Bi-weekly</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="quarterly">Quarterly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
                         </div>
                         <button type="submit" class="button">Add Expense</button>
                     </form>
@@ -315,6 +419,117 @@
                         this.renderExpenses();
                     });
                 });
+                
+                // Chart period selector
+                const chartPeriod = document.getElementById('chartPeriod');
+                if (chartPeriod) {
+                    chartPeriod.addEventListener('change', () => {
+                        const customDateContainer = document.getElementById('customDateContainer');
+                        if (chartPeriod.value === 'custom') {
+                            customDateContainer.style.display = 'flex';
+                        } else {
+                            customDateContainer.style.display = 'none';
+                            this.filterExpensesByPeriod(chartPeriod.value);
+                        }
+                    });
+                }
+                
+                // Custom date range
+                const applyCustomDate = document.getElementById('applyCustomDate');
+                if (applyCustomDate) {
+                    applyCustomDate.addEventListener('click', () => {
+                        const startDate = document.getElementById('startDate').value;
+                        const endDate = document.getElementById('endDate').value;
+                        
+                        if (startDate && endDate) {
+                            this.filterExpensesByDateRange(startDate, endDate);
+                        } else {
+                            alert('Please select both start and end dates');
+                        }
+                    });
+                }
+                
+                // Recurring expense toggle
+                const isRecurring = document.getElementById('isRecurring');
+                if (isRecurring) {
+                    isRecurring.addEventListener('change', () => {
+                        const recurringOptions = document.getElementById('recurringOptions');
+                        recurringOptions.style.display = isRecurring.checked ? 'block' : 'none';
+                    });
+                }
+                
+                // Budget management buttons
+                const setBudgetBtn = document.getElementById('setBudgetBtn');
+                if (setBudgetBtn) {
+                    setBudgetBtn.addEventListener('click', () => {
+                        const budget = prompt('Enter your monthly budget:', '2000');
+                        if (budget && !isNaN(parseFloat(budget))) {
+                            // In a real app, this would be saved to the server
+                            alert(`Budget set to $${parseFloat(budget).toFixed(2)}`);
+                            this.updateBudgetDisplay();
+                        }
+                    });
+                }
+                
+                const viewBudgetDetailsBtn = document.getElementById('viewBudgetDetailsBtn');
+                if (viewBudgetDetailsBtn) {
+                    viewBudgetDetailsBtn.addEventListener('click', () => {
+                        const categoryBudgets = document.getElementById('categoryBudgets');
+                        categoryBudgets.style.display = categoryBudgets.style.display === 'none' ? 'grid' : 'none';
+                    });
+                }
+            }
+            
+            filterExpensesByPeriod(period) {
+                let filteredExpenses = [...this.expenses];
+                const now = new Date();
+                
+                if (period === 'month') {
+                    const currentMonth = now.getMonth();
+                    const currentYear = now.getFullYear();
+                    
+                    filteredExpenses = filteredExpenses.filter(expense => {
+                        const expenseDate = new Date(expense.date);
+                        return expenseDate.getMonth() === currentMonth && 
+                               expenseDate.getFullYear() === currentYear;
+                    });
+                } else if (period === 'year') {
+                    const currentYear = now.getFullYear();
+                    
+                    filteredExpenses = filteredExpenses.filter(expense => {
+                        const expenseDate = new Date(expense.date);
+                        return expenseDate.getFullYear() === currentYear;
+                    });
+                }
+                
+                this.renderChartsWithData(filteredExpenses);
+            }
+            
+            filterExpensesByDateRange(startDate, endDate) {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59); // Include the entire end day
+                
+                const filteredExpenses = this.expenses.filter(expense => {
+                    const expenseDate = new Date(expense.date);
+                    return expenseDate >= start && expenseDate <= end;
+                });
+                
+                this.renderChartsWithData(filteredExpenses);
+            }
+            
+            renderChartsWithData(data) {
+                // Store the original expenses
+                const originalExpenses = this.expenses;
+                
+                // Temporarily set the filtered data
+                this.expenses = data;
+                
+                // Render charts with the filtered data
+                this.renderCharts();
+                
+                // Restore the original data
+                this.expenses = originalExpenses;
             }
             
             async loadExpenses() {
@@ -324,12 +539,362 @@
                         this.expenses = await response.json();
                         this.renderExpenses();
                         this.updateStats();
+                        this.renderCharts();
+                        this.updateBudgetDisplay();
                     } else {
                         console.error('Failed to load expenses');
                     }
                 } catch (error) {
                     console.error('Error loading expenses:', error);
                 }
+            }
+            
+            renderCharts() {
+                this.renderCategoryChart();
+                this.renderTimeChart();
+                this.updateAnalyticsSummary();
+            }
+            
+            renderCategoryChart() {
+                const ctx = document.getElementById('categoryChart').getContext('2d');
+                
+                // Group expenses by category
+                const categoryData = {};
+                this.expenses.forEach(expense => {
+                    const category = expense.category;
+                    if (!categoryData[category]) {
+                        categoryData[category] = 0;
+                    }
+                    categoryData[category] += expense.amount;
+                });
+                
+                // Prepare data for chart
+                const labels = Object.keys(categoryData);
+                const data = Object.values(categoryData);
+                
+                // Define colors for categories
+                const categoryColors = {
+                    'food': '#10b981',
+                    'transportation': '#3b82f6',
+                    'entertainment': '#ec4899',
+                    'utilities': '#f59e0b',
+                    'shopping': '#8b5cf6',
+                    'health': '#ef4444',
+                    'other': '#6b7280'
+                };
+                
+                const colors = labels.map(label => categoryColors[label] || '#6b7280');
+                
+                // Create or update chart
+                if (this.categoryChart) {
+                    this.categoryChart.data.labels = labels;
+                    this.categoryChart.data.datasets[0].data = data;
+                    this.categoryChart.data.datasets[0].backgroundColor = colors;
+                    this.categoryChart.update();
+                } else {
+                    this.categoryChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: data,
+                                backgroundColor: colors,
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'right',
+                                    labels: {
+                                        color: document.body.className === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.7)',
+                                        font: {
+                                            family: 'Inter'
+                                        }
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: (context) => {
+                                            const value = context.raw;
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = Math.round((value / total) * 100);
+                                            return `${context.label}: $${value.toFixed(2)} (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            },
+                            cutout: '70%'
+                        }
+                    });
+                }
+            }
+            
+            renderTimeChart() {
+                const ctx = document.getElementById('timeChart').getContext('2d');
+                
+                // Group expenses by date
+                const timeData = {};
+                const sortedExpenses = [...this.expenses].sort((a, b) => new Date(a.date) - new Date(b.date));
+                
+                sortedExpenses.forEach(expense => {
+                    const date = expense.date.split('T')[0];
+                    if (!timeData[date]) {
+                        timeData[date] = 0;
+                    }
+                    timeData[date] += expense.amount;
+                });
+                
+                // Prepare data for chart
+                const labels = Object.keys(timeData);
+                const data = Object.values(timeData);
+                
+                // Create or update chart
+                if (this.timeChart) {
+                    this.timeChart.data.labels = labels;
+                    this.timeChart.data.datasets[0].data = data;
+                    this.timeChart.update();
+                } else {
+                    this.timeChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Daily Spending',
+                                data: data,
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    grid: {
+                                        color: document.body.className === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                                    },
+                                    ticks: {
+                                        color: document.body.className === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
+                                        maxRotation: 45,
+                                        minRotation: 45
+                                    }
+                                },
+                                y: {
+                                    grid: {
+                                        color: document.body.className === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                                    },
+                                    ticks: {
+                                        color: document.body.className === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
+                                        callback: (value) => '$' + value
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: (context) => {
+                                            return `$${context.raw.toFixed(2)}`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+            
+            updateAnalyticsSummary() {
+                // Calculate total spending
+                const totalSpending = this.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+                document.getElementById('totalSpending').textContent = this.formatCurrency(totalSpending);
+                
+                // Calculate average daily spending
+                const dates = [...new Set(this.expenses.map(expense => expense.date.split('T')[0]))];
+                const averageDaily = dates.length > 0 ? totalSpending / dates.length : 0;
+                document.getElementById('averageDaily').textContent = this.formatCurrency(averageDaily);
+                
+                // Find highest category
+                const categoryTotals = {};
+                this.expenses.forEach(expense => {
+                    if (!categoryTotals[expense.category]) {
+                        categoryTotals[expense.category] = 0;
+                    }
+                    categoryTotals[expense.category] += expense.amount;
+                });
+                
+                let highestCategory = 'None';
+                let highestAmount = 0;
+                
+                for (const category in categoryTotals) {
+                    if (categoryTotals[category] > highestAmount) {
+                        highestAmount = categoryTotals[category];
+                        highestCategory = category;
+                    }
+                }
+                
+                document.getElementById('highestCategory').textContent = highestCategory !== 'None' ? 
+                    `${highestCategory} (${this.formatCurrency(highestAmount)})` : 'None';
+                
+                // Find highest spending day
+                const dailyTotals = {};
+                this.expenses.forEach(expense => {
+                    const date = expense.date.split('T')[0];
+                    if (!dailyTotals[date]) {
+                        dailyTotals[date] = 0;
+                    }
+                    dailyTotals[date] += expense.amount;
+                });
+                
+                let highestDay = 'None';
+                let highestDayAmount = 0;
+                
+                for (const date in dailyTotals) {
+                    if (dailyTotals[date] > highestDayAmount) {
+                        highestDayAmount = dailyTotals[date];
+                        highestDay = date;
+                    }
+                }
+                
+                if (highestDay !== 'None') {
+                    const formattedDate = new Date(highestDay).toLocaleDateString();
+                    document.getElementById('highestDay').textContent = 
+                        `${formattedDate} (${this.formatCurrency(highestDayAmount)})`;
+                } else {
+                    document.getElementById('highestDay').textContent = 'None';
+                }
+            }
+            
+            updateBudgetDisplay() {
+                // For demo purposes, we'll use hardcoded budget values
+                // In a real app, these would come from the server
+                const monthlyBudget = 2000;
+                const currentMonth = new Date().getMonth();
+                const currentYear = new Date().getFullYear();
+                
+                // Calculate current month's spending
+                const monthlySpending = this.expenses
+                    .filter(expense => {
+                        const expenseDate = new Date(expense.date);
+                        return expenseDate.getMonth() === currentMonth && 
+                               expenseDate.getFullYear() === currentYear;
+                    })
+                    .reduce((sum, expense) => sum + expense.amount, 0);
+                
+                // Update budget progress bar
+                const percentage = Math.min(100, (monthlySpending / monthlyBudget) * 100);
+                const budgetBar = document.getElementById('budgetBar');
+                budgetBar.style.width = `${percentage}%`;
+                
+                // Add warning class if over 80% of budget
+                if (percentage > 80) {
+                    budgetBar.classList.add('warning');
+                } else {
+                    budgetBar.classList.remove('warning');
+                }
+                
+                // Update budget text
+                document.getElementById('currentSpending').textContent = this.formatCurrency(monthlySpending);
+                document.getElementById('budgetLimit').textContent = `of ${this.formatCurrency(monthlyBudget)}`;
+                
+                // Update category budgets
+                this.updateCategoryBudgets();
+            }
+            
+            updateCategoryBudgets() {
+                // For demo purposes, we'll use hardcoded category budgets
+                // In a real app, these would come from the server
+                const categoryBudgets = {
+                    'food': 500,
+                    'transportation': 300,
+                    'entertainment': 200,
+                    'utilities': 400,
+                    'shopping': 300,
+                    'health': 200,
+                    'other': 100
+                };
+                
+                const currentMonth = new Date().getMonth();
+                const currentYear = new Date().getFullYear();
+                
+                // Calculate current month's spending by category
+                const categorySpending = {};
+                this.expenses
+                    .filter(expense => {
+                        const expenseDate = new Date(expense.date);
+                        return expenseDate.getMonth() === currentMonth && 
+                               expenseDate.getFullYear() === currentYear;
+                    })
+                    .forEach(expense => {
+                        if (!categorySpending[expense.category]) {
+                            categorySpending[expense.category] = 0;
+                        }
+                        categorySpending[expense.category] += expense.amount;
+                    });
+                
+                // Define colors for categories
+                const categoryColors = {
+                    'food': '#10b981',
+                    'transportation': '#3b82f6',
+                    'entertainment': '#ec4899',
+                    'utilities': '#f59e0b',
+                    'shopping': '#8b5cf6',
+                    'health': '#ef4444',
+                    'other': '#6b7280'
+                };
+                
+                // Generate category budget items
+                const categoryBudgetsContainer = document.getElementById('categoryBudgets');
+                categoryBudgetsContainer.innerHTML = '';
+                
+                for (const category in categoryBudgets) {
+                    const budget = categoryBudgets[category];
+                    const spent = categorySpending[category] || 0;
+                    const percentage = Math.min(100, (spent / budget) * 100);
+                    
+                    const categoryEl = document.createElement('div');
+                    categoryEl.className = 'category-budget-item';
+                    
+                    categoryEl.innerHTML = `
+                        <div class="category-budget-header">
+                            <div class="category-budget-icon" style="background-color: ${categoryColors[category]}20;">
+                                ${this.getCategoryIcon(category)}
+                            </div>
+                            <div class="category-budget-name">${category}</div>
+                        </div>
+                        <div class="category-budget-bar-container">
+                            <div class="category-budget-bar" style="width: ${percentage}%; background-color: ${categoryColors[category]};"></div>
+                        </div>
+                        <div class="category-budget-numbers">
+                            <span>${this.formatCurrency(spent)}</span>
+                            <span>of ${this.formatCurrency(budget)}</span>
+                        </div>
+                    `;
+                    
+                    categoryBudgetsContainer.appendChild(categoryEl);
+                }
+            }
+            
+            getCategoryIcon(category) {
+                const icons = {
+                    'food': '🍔',
+                    'transportation': '🚗',
+                    'entertainment': '🎬',
+                    'utilities': '💡',
+                    'shopping': '🛍️',
+                    'health': '💊',
+                    'other': '📦'
+                };
+                
+                return icons[category] || '📦';
             }
             
             async addExpense() {
