@@ -12,6 +12,8 @@ app.secret_key = 'your_secret_key_here'  # Change this to a random secret key in
 # File paths
 USERS_FILE = 'users.json'
 EXPENSES_FILE = 'expenses.json'
+HABITS_FILE = 'habits.json'
+WATER_FILE = 'water.json'
 
 # Helper functions
 def load_users():
@@ -34,6 +36,26 @@ def save_expenses(expenses):
     with open(EXPENSES_FILE, 'w') as f:
         json.dump(expenses, f)
 
+def load_habits():
+    if os.path.exists(HABITS_FILE):
+        with open(HABITS_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+def save_habits(habits):
+    with open(HABITS_FILE, 'w') as f:
+        json.dump(habits, f)
+
+def load_water():
+    if os.path.exists(WATER_FILE):
+        with open(WATER_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_water(water_data):
+    with open(WATER_FILE, 'w') as f:
+        json.dump(water_data, f)
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -47,7 +69,7 @@ def login_required(f):
 @app.route('/')
 def home():
     if 'user_id' in session:
-        return render_template('dashboard.html')
+        return render_template('main_dashboard.html')
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -156,7 +178,12 @@ def logout():
     return redirect(url_for('login'))
 
 # Expense routes
-@app.route('/expenses', methods=['GET'])
+@app.route('/expenses')
+@login_required
+def expenses_page():
+    return render_template('expenses.html')
+
+@app.route('/expenses/data', methods=['GET'])
 @login_required
 def get_expenses():
     expenses = load_expenses()
@@ -221,6 +248,165 @@ def delete_expense(expense_id):
             return jsonify({'message': 'Expense deleted successfully'})
     
     return jsonify({'error': 'Expense not found or unauthorized'}), 404
+
+# Habit routes
+@app.route('/habits')
+@login_required
+def habits_page():
+    return render_template('habits.html')
+
+@app.route('/habits/data', methods=['GET'])
+@login_required
+def get_habits():
+    habits = load_habits()
+    user_habits = [habit for habit in habits if habit.get('user_id') == session['user_id']]
+    return jsonify(user_habits)
+
+@app.route('/habits/add', methods=['POST'])
+@login_required
+def add_habit():
+    data = request.get_json()
+    
+    if not data or 'name' not in data or 'category' not in data or 'frequency' not in data:
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    habits = load_habits()
+    
+    new_habit = {
+        'id': str(uuid.uuid4()),
+        'user_id': session['user_id'],
+        'name': data['name'],
+        'category': data['category'],
+        'frequency': data['frequency'],
+        'created_at': datetime.now().isoformat(),
+        'completedDates': [],
+        'streak': 0
+    }
+    
+    habits.append(new_habit)
+    save_habits(habits)
+    
+    return jsonify(new_habit), 201
+
+@app.route('/habits/<habit_id>/toggle', methods=['POST'])
+@login_required
+def toggle_habit(habit_id):
+    habits = load_habits()
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    for habit in habits:
+        if habit.get('id') == habit_id and habit.get('user_id') == session['user_id']:
+            if 'completedDates' not in habit:
+                habit['completedDates'] = []
+            
+            if today in habit['completedDates']:
+                habit['completedDates'].remove(today)
+                # Decrease streak if it was completed today
+                if habit.get('streak', 0) > 0:
+                    habit['streak'] -= 1
+            else:
+                habit['completedDates'].append(today)
+                # Increase streak
+                habit['streak'] = habit.get('streak', 0) + 1
+            
+            save_habits(habits)
+            return jsonify(habit)
+    
+    return jsonify({'error': 'Habit not found or unauthorized'}), 404
+
+@app.route('/habits/<habit_id>', methods=['DELETE'])
+@login_required
+def delete_habit(habit_id):
+    habits = load_habits()
+    
+    for i, habit in enumerate(habits):
+        if habit.get('id') == habit_id and habit.get('user_id') == session['user_id']:
+            del habits[i]
+            save_habits(habits)
+            return jsonify({'message': 'Habit deleted successfully'})
+    
+    return jsonify({'error': 'Habit not found or unauthorized'}), 404
+
+# Water tracker routes
+@app.route('/water')
+@login_required
+def water_page():
+    return render_template('water.html')
+
+@app.route('/water/data', methods=['GET'])
+@login_required
+def get_water_data():
+    water_data = load_water()
+    user_id = session['user_id']
+    
+    if user_id not in water_data:
+        water_data[user_id] = {
+            'goal': 2000,  # Default goal in ml
+            'current': 0,
+            'history': []
+        }
+        save_water(water_data)
+    
+    return jsonify(water_data[user_id])
+
+@app.route('/water/update', methods=['POST'])
+@login_required
+def update_water():
+    data = request.get_json()
+    
+    if not data or 'amount' not in data:
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    water_data = load_water()
+    user_id = session['user_id']
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    if user_id not in water_data:
+        water_data[user_id] = {
+            'goal': 2000,  # Default goal in ml
+            'current': 0,
+            'history': []
+        }
+    
+    water_data[user_id]['current'] = int(data['amount'])
+    
+    # Update history
+    history_entry = next((entry for entry in water_data[user_id]['history'] if entry['date'] == today), None)
+    
+    if history_entry:
+        history_entry['amount'] = water_data[user_id]['current']
+    else:
+        water_data[user_id]['history'].append({
+            'date': today,
+            'amount': water_data[user_id]['current']
+        })
+    
+    save_water(water_data)
+    
+    return jsonify(water_data[user_id])
+
+@app.route('/water/goal', methods=['POST'])
+@login_required
+def update_water_goal():
+    data = request.get_json()
+    
+    if not data or 'goal' not in data:
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    water_data = load_water()
+    user_id = session['user_id']
+    
+    if user_id not in water_data:
+        water_data[user_id] = {
+            'goal': 2000,
+            'current': 0,
+            'history': []
+        }
+    
+    water_data[user_id]['goal'] = int(data['goal'])
+    save_water(water_data)
+    
+    return jsonify(water_data[user_id])
 
 if __name__ == '__main__':
     app.run(debug=True)

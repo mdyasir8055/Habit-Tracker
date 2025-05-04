@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expenses - Life Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="dark">
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="sparkle">✨</span>
+                <h1>Life Manager</h1>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('home') }}" class="nav-link">Dashboard</a>
+                <a href="{{ url_for('expenses_page') }}" class="nav-link active">Expenses</a>
+                <a href="{{ url_for('habits_page') }}" class="nav-link">Habits</a>
+                <a href="{{ url_for('water_page') }}" class="nav-link">Water Tracker</a>
+                <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
+                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Canvas Backgrounds -->
+    <canvas id="starsCanvas"></canvas>
+    <canvas id="neonCanvas"></canvas>
+
+    <!-- Main Content -->
+    <div class="container">
+        <header class="header">
+            <h1>Expense Tracker</h1>
+            <p>Track your expenses and manage your finances with ease.</p>
+        </header>
+
+        <div class="grid">
+            <!-- Add Expense Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Add New Expense</h2>
+                    <p>Record your spending</p>
+                </div>
+                <div class="card-content">
+                    <form id="expense-form" class="form">
+                        <div class="form-group">
+                            <label for="expense-description">Description</label>
+                            <input type="text" id="expense-description" required placeholder="What did you spend on?">
+                        </div>
+                        <div class="form-group">
+                            <label for="expense-amount">Amount</label>
+                            <input type="number" id="expense-amount" required placeholder="How much did you spend?" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="expense-category">Category</label>
+                            <select id="expense-category" required>
+                                <option value="food">Food</option>
+                                <option value="transportation">Transportation</option>
+                                <option value="entertainment">Entertainment</option>
+                                <option value="utilities">Utilities</option>
+                                <option value="shopping">Shopping</option>
+                                <option value="health">Health</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="expense-date">Date</label>
+                            <input type="date" id="expense-date" required>
+                        </div>
+                        <button type="submit" class="button">Add Expense</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Statistics</h2>
+                    <p>Your spending overview</p>
+                </div>
+                <div class="card-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-icon">💰</span>
+                            <div>
+                                <p class="stat-label">Total Expenses</p>
+                                <p class="stat-value" id="total-expenses">$0.00</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon">📊</span>
+                            <div>
+                                <p class="stat-label">This Month</p>
+                                <p class="stat-value" id="month-expenses">$0.00</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon">🔝</span>
+                            <div>
+                                <p class="stat-label">Top Category</p>
+                                <p class="stat-value" id="top-category">None</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon">📅</span>
+                            <div>
+                                <p class="stat-label">Today</p>
+                                <p class="stat-value" id="today-expenses">$0.00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses List -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Your Expenses</h2>
+                <p id="expense-count">Total: 0 expenses</p>
+            </div>
+            <div class="card-content">
+                <div class="tabs" id="category-tabs">
+                    <button class="tab active" data-category="all">All</button>
+                    <button class="tab" data-category="food">Food</button>
+                    <button class="tab" data-category="transportation">Transportation</button>
+                    <button class="tab" data-category="entertainment">Entertainment</button>
+                    <button class="tab" data-category="utilities">Utilities</button>
+                    <button class="tab" data-category="shopping">Shopping</button>
+                    <button class="tab" data-category="health">Health</button>
+                    <button class="tab" data-category="other">Other</button>
+                </div>
+                <div class="expenses-container" id="expenses-container">
+                    <!-- Expenses will be loaded here -->
+                    <p class="no-expenses">No expenses found</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        
+        // Check for saved theme preference or default to dark
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        body.className = savedTheme;
+        themeToggle.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+        
+        // Toggle theme
+        themeToggle.addEventListener('click', () => {
+            if (body.className === 'dark') {
+                body.className = 'light';
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.className = 'dark';
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+        
+        // Canvas animations
+        class StarsAnimation {
+            constructor() {
+                this.canvas = document.getElementById('starsCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.stars = [];
+                this.resize();
+                this.init();
+                this.animate();
+                
+                window.addEventListener('resize', () => this.resize());
+            }
+            
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.init();
+            }
+            
+            init() {
+                this.stars = [];
+                const numStars = Math.floor(this.canvas.width * this.canvas.height / 1000);
+                
+                for (let i = 0; i < numStars; i++) {
+                    this.stars.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        radius: Math.random() * 1.5,
+                        opacity: Math.random() * 0.5 + 0.5
+                    });
+                }
+            }
+            
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.stars.forEach(star => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+                    this.ctx.fill();
+                    
+                    // Twinkle effect
+                    star.opacity += Math.random() * 0.01 - 0.005;
+                    star.opacity = Math.max(0.5, Math.min(1, star.opacity));
+                });
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        class NeonAnimation {
+            constructor() {
+                this.canvas = document.getElementById('neonCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.particles = [];
+                this.resize();
+                this.init();
+                this.animate();
+                
+                window.addEventListener('resize', () => this.resize());
+            }
+            
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.init();
+            }
+            
+            init() {
+                this.particles = [];
+                const numParticles = 50;
+                
+                for (let i = 0; i < numParticles; i++) {
+                    this.particles.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        size: Math.random() * 2 + 1,
+                        speedX: Math.random() * 1 - 0.5,
+                        speedY: Math.random() * 1 - 0.5,
+                        color: this.getRandomColor()
+                    });
+                }
+            }
+            
+            getRandomColor() {
+                const colors = ['#9333ea', '#ec4899', '#10b981', '#3b82f6'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.particles.forEach(particle => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    this.ctx.fillStyle = particle.color;
+                    this.ctx.fill();
+                    
+                    // Move particles
+                    particle.x += particle.speedX;
+                    particle.y += particle.speedY;
+                    
+                    // Bounce off edges
+                    if (particle.x < 0 || particle.x > this.canvas.width) {
+                        particle.speedX *= -1;
+                    }
+                    
+                    if (particle.y < 0 || particle.y > this.canvas.height) {
+                        particle.speedY *= -1;
+                    }
+                });
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        // Expense Tracker Class
+        class ExpenseTracker {
+            constructor() {
+                this.expenses = [];
+                this.activeCategory = 'all';
+                
+                // Initialize
+                this.initEventListeners();
+                this.loadExpenses();
+                
+                // Set default date to today
+                document.getElementById('expense-date').valueAsDate = new Date();
+            }
+            
+            initEventListeners() {
+                // Form submission
+                document.getElementById('expense-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addExpense();
+                });
+                
+                // Category tabs
+                document.querySelectorAll('#category-tabs .tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        document.querySelectorAll('#category-tabs .tab').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        this.activeCategory = tab.getAttribute('data-category');
+                        this.renderExpenses();
+                    });
+                });
+            }
+            
+            async loadExpenses() {
+                try {
+                    const response = await fetch('/expenses/data');
+                    if (response.ok) {
+                        this.expenses = await response.json();
+                        this.renderExpenses();
+                        this.updateStats();
+                    } else {
+                        console.error('Failed to load expenses');
+                    }
+                } catch (error) {
+                    console.error('Error loading expenses:', error);
+                }
+            }
+            
+            async addExpense() {
+                const description = document.getElementById('expense-description').value;
+                const amount = parseFloat(document.getElementById('expense-amount').value);
+                const category = document.getElementById('expense-category').value;
+                const date = document.getElementById('expense-date').value;
+                
+                if (!description || isNaN(amount) || amount <= 0 || !category || !date) {
+                    alert('Please fill in all fields correctly');
+                    return;
+                }
+                
+                const newExpense = {
+                    description,
+                    amount,
+                    category,
+                    date
+                };
+                
+                try {
+                    const response = await fetch('/expenses/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(newExpense)
+                    });
+                    
+                    if (response.ok) {
+                        const savedExpense = await response.json();
+                        this.expenses.push(savedExpense);
+                        this.renderExpenses();
+                        this.updateStats();
+                        
+                        // Reset form
+                        document.getElementById('expense-form').reset();
+                        document.getElementById('expense-date').valueAsDate = new Date();
+                    } else {
+                        console.error('Failed to add expense');
+                    }
+                } catch (error) {
+                    console.error('Error adding expense:', error);
+                }
+            }
+            
+            async deleteExpense(id) {
+                if (!confirm('Are you sure you want to delete this expense?')) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/expenses/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        this.expenses = this.expenses.filter(expense => expense.id !== id);
+                        this.renderExpenses();
+                        this.updateStats();
+                    } else {
+                        console.error('Failed to delete expense');
+                    }
+                } catch (error) {
+                    console.error('Error deleting expense:', error);
+                }
+            }
+            
+            renderExpenses() {
+                const container = document.getElementById('expenses-container');
+                container.innerHTML = '';
+                
+                const filteredExpenses = this.activeCategory === 'all'
+                    ? this.expenses
+                    : this.expenses.filter(e => e.category === this.activeCategory);
+                
+                // Sort by date (newest first)
+                filteredExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                if (filteredExpenses.length === 0) {
+                    container.innerHTML = '<p class="no-expenses">No expenses found</p>';
+                } else {
+                    filteredExpenses.forEach(expense => {
+                        const expenseElement = document.createElement('div');
+                        expenseElement.className = 'expense-item';
+                        
+                        // Format date
+                        const date = new Date(expense.date);
+                        const formattedDate = date.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                        });
+                        
+                        // Format amount
+                        const formattedAmount = new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD'
+                        }).format(expense.amount);
+                        
+                        // Get category icon
+                        const categoryIcon = this.getCategoryIcon(expense.category);
+                        
+                        expenseElement.innerHTML = `
+                            <div class="expense-content">
+                                <div class="expense-category-icon ${expense.category}">
+                                    ${categoryIcon}
+                                </div>
+                                <div class="expense-info">
+                                    <p class="expense-description">${expense.description}</p>
+                                    <p class="expense-meta">
+                                        ${formattedDate} • ${expense.category}
+                                    </p>
+                                </div>
+                                <div class="expense-amount">
+                                    ${formattedAmount}
+                                </div>
+                                <button class="delete-button" 
+                                        onclick="expenseTracker.deleteExpense('${expense.id}')">
+                                    🗑️
+                                </button>
+                            </div>
+                        `;
+                        container.appendChild(expenseElement);
+                    });
+                }
+                
+                // Update expense count
+                document.getElementById('expense-count').textContent = `Total: ${filteredExpenses.length} expense${filteredExpenses.length !== 1 ? 's' : ''}`;
+            }
+            
+            getCategoryIcon(category) {
+                const icons = {
+                    food: '🍔',
+                    transportation: '🚗',
+                    entertainment: '🎬',
+                    utilities: '💡',
+                    shopping: '🛍️',
+                    health: '🏥',
+                    other: '📝'
+                };
+                
+                return icons[category] || '📝';
+            }
+            
+            updateStats() {
+                // Calculate total expenses
+                const total = this.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+                document.getElementById('total-expenses').textContent = this.formatCurrency(total);
+                
+                // Calculate this month's expenses
+                const now = new Date();
+                const thisMonth = now.getMonth();
+                const thisYear = now.getFullYear();
+                
+                const monthExpenses = this.expenses.filter(expense => {
+                    const expenseDate = new Date(expense.date);
+                    return expenseDate.getMonth() === thisMonth && expenseDate.getFullYear() === thisYear;
+                }).reduce((sum, expense) => sum + expense.amount, 0);
+                
+                document.getElementById('month-expenses').textContent = this.formatCurrency(monthExpenses);
+                
+                // Calculate today's expenses
+                const today = new Date().toISOString().split('T')[0];
+                const todayExpenses = this.expenses
+                    .filter(expense => expense.date === today)
+                    .reduce((sum, expense) => sum + expense.amount, 0);
+                
+                document.getElementById('today-expenses').textContent = this.formatCurrency(todayExpenses);
+                
+                // Find top category
+                const categories = {};
+                this.expenses.forEach(expense => {
+                    if (!categories[expense.category]) {
+                        categories[expense.category] = 0;
+                    }
+                    categories[expense.category] += expense.amount;
+                });
+                
+                let topCategory = 'None';
+                let topAmount = 0;
+                
+                for (const category in categories) {
+                    if (categories[category] > topAmount) {
+                        topAmount = categories[category];
+                        topCategory = category.charAt(0).toUpperCase() + category.slice(1);
+                    }
+                }
+                
+                document.getElementById('top-category').textContent = topCategory;
+            }
+            
+            formatCurrency(amount) {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD'
+                }).format(amount);
+            }
+        }
+        
+        // Initialize everything
+        const starsAnimation = new StarsAnimation();
+        const neonAnimation = new NeonAnimation();
+        const expenseTracker = new ExpenseTracker();
+    </script>
+</body>
+</html>

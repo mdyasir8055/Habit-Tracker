@@ -459,6 +459,531 @@ body.light .no-expenses {
     50% { transform: translateY(-10px); }
 }
 
+/* Water Tracker Styles */
+.water-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.water-level-container {
+    width: 200px;
+    height: 300px;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    margin: 2rem 0;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+body.light .water-level-container {
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.water-level {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(to top, #3b82f6, #60a5fa);
+    transition: height 0.5s ease;
+    border-radius: 0 0 16px 16px;
+}
+
+.water-level::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 0;
+    width: 100%;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    animation: wave 2s infinite linear;
+}
+
+@keyframes wave {
+    0% { transform: translateX(-50%); }
+    100% { transform: translateX(50%); }
+}
+
+.water-percentage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    z-index: 1;
+}
+
+.water-controls {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.water-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    background: #3b82f6;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.water-button:hover {
+    background: #2563eb;
+    transform: scale(1.05);
+}
+
+.water-button.add {
+    background: #10b981;
+}
+
+.water-button.add:hover {
+    background: #059669;
+}
+
+.water-button.subtract {
+    background: #ef4444;
+}
+
+.water-button.subtract:hover {
+    background: #dc2626;
+}
+
+.water-info {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.water-goal {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.water-current {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(to right, #3b82f6, #60a5fa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.water-remaining {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+body.light .water-remaining {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.water-history {
+    width: 100%;
+    max-width: 600px;
+}
+
+.water-day {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+body.light .water-day {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.water-day-date {
+    width: 100px;
+    font-weight: 500;
+}
+
+.water-day-progress {
+    flex: 1;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+}
+
+body.light .water-day-progress {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.water-day-bar {
+    height: 100%;
+    background: linear-gradient(to right, #3b82f6, #60a5fa);
+    border-radius: 5px;
+}
+
+.water-day-amount {
+    width: 80px;
+    text-align: right;
+    font-weight: 500;
+}
+
+/* Dashboard Specific Styles */
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.quick-action-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+}
+
+body.light .quick-action-card {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.quick-action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+body.light .quick-action-card:hover {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.quick-action-icon {
+    font-size: 2rem;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+}
+
+body.light .quick-action-icon {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.quick-action-text h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.quick-action-text p {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+body.light .quick-action-text p {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.water-progress-container {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.water-progress-circle {
+    position: relative;
+    width: 120px;
+    height: 120px;
+}
+
+.water-progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.water-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.water-stat-label {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+body.light .water-stat-label {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.water-stat-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.water-quick-add {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.water-add-button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    border: none;
+    background: #3b82f6;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.water-add-button:hover {
+    background: #2563eb;
+}
+
+.view-all-link {
+    display: inline-block;
+    margin-top: 1rem;
+    color: #9333ea;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.view-all-link:hover {
+    text-decoration: underline;
+}
+
+.recent-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+body.light .recent-item {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.recent-item-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.light .recent-item-icon {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.recent-item-info {
+    flex: 1;
+}
+
+.recent-item-title {
+    font-weight: 500;
+}
+
+.recent-item-meta {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: capitalize;
+}
+
+body.light .recent-item-meta {
+    color: rgba(0, 0, 0, 0.5);
+}
+
+.recent-item-amount {
+    font-weight: 600;
+    color: #ef4444;
+}
+
+.recent-item-status {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.light .recent-item-status {
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+.recent-item-status.completed {
+    background: #10b981;
+    border-color: #10b981;
+    color: white;
+}
+
+.no-data {
+    text-align: center;
+    padding: 1rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+}
+
+body.light .no-data {
+    color: rgba(0, 0, 0, 0.4);
+}
+
+/* Habit Tracker Styles */
+.habits-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.habit-item {
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+body.light .habit-item {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.habit-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.light .habit-item:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.habit-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.habit-category-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.light .habit-category-icon {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.habit-category-icon.personal { background-color: rgba(59, 130, 246, 0.2); }
+.habit-category-icon.work { background-color: rgba(245, 158, 11, 0.2); }
+.habit-category-icon.health { background-color: rgba(139, 92, 246, 0.2); }
+.habit-category-icon.fitness { background-color: rgba(16, 185, 129, 0.2); }
+
+.habit-info {
+    flex: 1;
+}
+
+.habit-name {
+    font-weight: 500;
+}
+
+.habit-meta {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: capitalize;
+}
+
+body.light .habit-meta {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.habit-streak {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 600;
+}
+
+.streak-icon {
+    font-size: 1.25rem;
+}
+
+.habit-toggle {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    color: inherit;
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+body.light .habit-toggle {
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+.habit-toggle:hover {
+    border-color: #10b981;
+}
+
+.habit-toggle.completed {
+    background: #10b981;
+    border-color: #10b981;
+    color: white;
+}
+
+.no-habits {
+    text-align: center;
+    padding: 2rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+body.light .no-habits {
+    color: rgba(0, 0, 0, 0.5);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .container {
@@ -475,5 +1000,31 @@ body.light .no-expenses {
     
     .nav-container {
         padding: 0.75rem 1rem;
+    }
+    
+    .water-progress-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .water-level-container {
+        width: 150px;
+        height: 225px;
+    }
+    
+    .expense-content, .habit-content {
+        flex-wrap: wrap;
+    }
+    
+    .expense-info, .habit-info {
+        width: calc(100% - 3.5rem - 2.5rem - 2rem);
+    }
+    
+    .expense-amount {
+        margin-left: 3.5rem;
+    }
+    
+    .delete-button {
+        margin-left: auto;
     }
 }

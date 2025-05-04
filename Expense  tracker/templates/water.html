@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Tracker - Life Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Water Tracker Specific Styles */
+        .water-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .water-level-container {
+            width: 200px;
+            height: 300px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            margin: 2rem 0;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        body.light .water-level-container {
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        .water-level {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(to top, #3b82f6, #60a5fa);
+            transition: height 0.5s ease;
+            border-radius: 0 0 16px 16px;
+        }
+        
+        .water-level::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: wave 2s infinite linear;
+        }
+        
+        @keyframes wave {
+            0% { transform: translateX(-50%); }
+            100% { transform: translateX(50%); }
+        }
+        
+        .water-percentage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 1;
+        }
+        
+        .water-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .water-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: #3b82f6;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .water-button:hover {
+            background: #2563eb;
+            transform: scale(1.05);
+        }
+        
+        .water-button.add {
+            background: #10b981;
+        }
+        
+        .water-button.add:hover {
+            background: #059669;
+        }
+        
+        .water-button.subtract {
+            background: #ef4444;
+        }
+        
+        .water-button.subtract:hover {
+            background: #dc2626;
+        }
+        
+        .water-info {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .water-goal {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .water-current {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #3b82f6, #60a5fa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .water-remaining {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        body.light .water-remaining {
+            color: rgba(0, 0, 0, 0.6);
+        }
+        
+        .water-history {
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        .water-day {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        body.light .water-day {
+            background: rgba(0, 0, 0, 0.03);
+        }
+        
+        .water-day-date {
+            width: 100px;
+            font-weight: 500;
+        }
+        
+        .water-day-progress {
+            flex: 1;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        body.light .water-day-progress {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        .water-day-bar {
+            height: 100%;
+            background: linear-gradient(to right, #3b82f6, #60a5fa);
+            border-radius: 5px;
+        }
+        
+        .water-day-amount {
+            width: 80px;
+            text-align: right;
+            font-weight: 500;
+        }
+        
+        .water-reminder-settings {
+            margin-top: 2rem;
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        .reminder-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        body.light .toggle-slider {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #3b82f6;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        .reminder-interval {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body class="dark">
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="sparkle">✨</span>
+                <h1>Life Manager</h1>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('home') }}" class="nav-link">Dashboard</a>
+                <a href="{{ url_for('expenses_page') }}" class="nav-link">Expenses</a>
+                <a href="{{ url_for('habits_page') }}" class="nav-link">Habits</a>
+                <a href="{{ url_for('water_page') }}" class="nav-link active">Water Tracker</a>
+                <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
+                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Canvas Backgrounds -->
+    <canvas id="starsCanvas"></canvas>
+    <canvas id="neonCanvas"></canvas>
+
+    <!-- Main Content -->
+    <div class="container">
+        <header class="header">
+            <h1>Water Tracker</h1>
+            <p>Stay hydrated throughout the day. Track your water intake and set reminders.</p>
+        </header>
+
+        <div class="grid">
+            <!-- Water Tracker -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Today's Water Intake</h2>
+                    <p>Track your hydration</p>
+                </div>
+                <div class="card-content">
+                    <div class="water-container">
+                        <div class="water-level-container">
+                            <div class="water-level" id="water-level" style="height: 0%;"></div>
+                            <div class="water-percentage" id="water-percentage">0%</div>
+                        </div>
+                        
+                        <div class="water-info">
+                            <p class="water-goal">Daily Goal: <span id="water-goal">2000</span> ml</p>
+                            <p class="water-current"><span id="water-current">0</span> ml</p>
+                            <p class="water-remaining">Remaining: <span id="water-remaining">2000</span> ml</p>
+                        </div>
+                        
+                        <div class="water-controls">
+                            <button class="water-button add" id="add-250ml">+250</button>
+                            <button class="water-button add" id="add-500ml">+500</button>
+                            <button class="water-button subtract" id="subtract-250ml">-250</button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="custom-amount">Custom Amount (ml)</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="number" id="custom-amount" min="0" step="50" placeholder="Enter amount">
+                                <button class="button" id="add-custom">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Water Reminder Settings -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Reminder Settings</h2>
+                    <p>Set up water intake reminders</p>
+                </div>
+                <div class="card-content">
+                    <div class="water-reminder-settings">
+                        <div class="reminder-toggle">
+                            <p>Enable Reminders</p>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="reminder-toggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="form-group reminder-interval">
+                            <label for="reminder-interval">Reminder Interval</label>
+                            <select id="reminder-interval">
+                                <option value="30">Every 30 minutes</option>
+                                <option value="60" selected>Every 1 hour</option>
+                                <option value="90">Every 1.5 hours</option>
+                                <option value="120">Every 2 hours</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="start-time">Start Time</label>
+                            <input type="time" id="start-time" value="08:00">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="end-time">End Time</label>
+                            <input type="time" id="end-time" value="22:00">
+                        </div>
+                        
+                        <button class="button" id="save-reminder-settings">Save Settings</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Water History -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Water Intake History</h2>
+                <p>Your hydration over time</p>
+            </div>
+            <div class="card-content">
+                <div class="water-history" id="water-history">
+                    <!-- Water history will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        
+        // Check for saved theme preference or default to dark
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        body.className = savedTheme;
+        themeToggle.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+        
+        // Toggle theme
+        themeToggle.addEventListener('click', () => {
+            if (body.className === 'dark') {
+                body.className = 'light';
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.className = 'dark';
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+        
+        // Canvas animations
+        class StarsAnimation {
+            constructor() {
+                this.canvas = document.getElementById('starsCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.stars = [];
+                this.resize();
+                this.init();
+                this.animate();
+                
+                window.addEventListener('resize', () => this.resize());
+            }
+            
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.init();
+            }
+            
+            init() {
+                this.stars = [];
+                const numStars = Math.floor(this.canvas.width * this.canvas.height / 1000);
+                
+                for (let i = 0; i < numStars; i++) {
+                    this.stars.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        radius: Math.random() * 1.5,
+                        opacity: Math.random() * 0.5 + 0.5
+                    });
+                }
+            }
+            
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.stars.forEach(star => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+                    this.ctx.fill();
+                    
+                    // Twinkle effect
+                    star.opacity += Math.random() * 0.01 - 0.005;
+                    star.opacity = Math.max(0.5, Math.min(1, star.opacity));
+                });
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        class NeonAnimation {
+            constructor() {
+                this.canvas = document.getElementById('neonCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.particles = [];
+                this.resize();
+                this.init();
+                this.animate();
+                
+                window.addEventListener('resize', () => this.resize());
+            }
+            
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.init();
+            }
+            
+            init() {
+                this.particles = [];
+                const numParticles = 50;
+                
+                for (let i = 0; i < numParticles; i++) {
+                    this.particles.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        size: Math.random() * 2 + 1,
+                        speedX: Math.random() * 1 - 0.5,
+                        speedY: Math.random() * 1 - 0.5,
+                        color: this.getRandomColor()
+                    });
+                }
+            }
+            
+            getRandomColor() {
+                const colors = ['#9333ea', '#ec4899', '#10b981', '#3b82f6'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.particles.forEach(particle => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    this.ctx.fillStyle = particle.color;
+                    this.ctx.fill();
+                    
+                    // Move particles
+                    particle.x += particle.speedX;
+                    particle.y += particle.speedY;
+                    
+                    // Bounce off edges
+                    if (particle.x < 0 || particle.x > this.canvas.width) {
+                        particle.speedX *= -1;
+                    }
+                    
+                    if (particle.y < 0 || particle.y > this.canvas.height) {
+                        particle.speedY *= -1;
+                    }
+                });
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        // Water Tracker Class
+        class WaterTracker {
+            constructor() {
+                this.waterGoal = 2000; // Default goal in ml
+                this.currentWater = 0;
+                this.waterHistory = [];
+                this.reminderEnabled = false;
+                this.reminderInterval = 60; // Default: 60 minutes
+                this.startTime = '08:00';
+                this.endTime = '22:00';
+                this.reminderTimeout = null;
+                
+                // Initialize
+                this.initElements();
+                this.initEventListeners();
+                this.loadWaterData();
+                this.loadReminderSettings();
+            }
+            
+            initElements() {
+                this.waterLevelEl = document.getElementById('water-level');
+                this.waterPercentageEl = document.getElementById('water-percentage');
+                this.waterGoalEl = document.getElementById('water-goal');
+                this.waterCurrentEl = document.getElementById('water-current');
+                this.waterRemainingEl = document.getElementById('water-remaining');
+                this.waterHistoryEl = document.getElementById('water-history');
+                
+                // Reminder elements
+                this.reminderToggleEl = document.getElementById('reminder-toggle');
+                this.reminderIntervalEl = document.getElementById('reminder-interval');
+                this.startTimeEl = document.getElementById('start-time');
+                this.endTimeEl = document.getElementById('end-time');
+            }
+            
+            initEventListeners() {
+                // Water intake buttons
+                document.getElementById('add-250ml').addEventListener('click', () => this.addWater(250));
+                document.getElementById('add-500ml').addEventListener('click', () => this.addWater(500));
+                document.getElementById('subtract-250ml').addEventListener('click', () => this.addWater(-250));
+                
+                // Custom amount
+                document.getElementById('add-custom').addEventListener('click', () => {
+                    const customAmount = parseInt(document.getElementById('custom-amount').value);
+                    if (!isNaN(customAmount) && customAmount > 0) {
+                        this.addWater(customAmount);
+                        document.getElementById('custom-amount').value = '';
+                    }
+                });
+                
+                // Reminder settings
+                document.getElementById('save-reminder-settings').addEventListener('click', () => {
+                    this.saveReminderSettings();
+                });
+                
+                // Toggle reminder
+                this.reminderToggleEl.addEventListener('change', () => {
+                    this.reminderEnabled = this.reminderToggleEl.checked;
+                    if (this.reminderEnabled) {
+                        this.scheduleReminder();
+                    } else {
+                        this.clearReminder();
+                    }
+                });
+            }
+            
+            async loadWaterData() {
+                try {
+                    const response = await fetch('/water/data');
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.waterGoal = data.goal || 2000;
+                        this.currentWater = data.current || 0;
+                        this.waterHistory = data.history || [];
+                        
+                        this.updateWaterDisplay();
+                        this.renderWaterHistory();
+                    } else {
+                        console.error('Failed to load water data');
+                    }
+                } catch (error) {
+                    console.error('Error loading water data:', error);
+                }
+            }
+            
+            loadReminderSettings() {
+                const settings = JSON.parse(localStorage.getItem('waterReminderSettings') || '{}');
+                this.reminderEnabled = settings.enabled || false;
+                this.reminderInterval = settings.interval || 60;
+                this.startTime = settings.startTime || '08:00';
+                this.endTime = settings.endTime || '22:00';
+                
+                // Update UI
+                this.reminderToggleEl.checked = this.reminderEnabled;
+                this.reminderIntervalEl.value = this.reminderInterval;
+                this.startTimeEl.value = this.startTime;
+                this.endTimeEl.value = this.endTime;
+                
+                // Schedule reminder if enabled
+                if (this.reminderEnabled) {
+                    this.scheduleReminder();
+                }
+            }
+            
+            saveReminderSettings() {
+                this.reminderEnabled = this.reminderToggleEl.checked;
+                this.reminderInterval = parseInt(this.reminderIntervalEl.value);
+                this.startTime = this.startTimeEl.value;
+                this.endTime = this.endTimeEl.value;
+                
+                const settings = {
+                    enabled: this.reminderEnabled,
+                    interval: this.reminderInterval,
+                    startTime: this.startTime,
+                    endTime: this.endTime
+                };
+                
+                localStorage.setItem('waterReminderSettings', JSON.stringify(settings));
+                
+                // Clear existing reminder and schedule new one if enabled
+                this.clearReminder();
+                if (this.reminderEnabled) {
+                    this.scheduleReminder();
+                }
+                
+                alert('Reminder settings saved!');
+            }
+            
+            scheduleReminder() {
+                this.clearReminder();
+                
+                // Check if current time is within reminder hours
+                if (this.isWithinReminderHours()) {
+                    this.reminderTimeout = setTimeout(() => {
+                        this.showReminder();
+                        this.scheduleReminder(); // Schedule next reminder
+                    }, this.reminderInterval * 60 * 1000);
+                } else {
+                    // Schedule for next start time
+                    const nextStart = this.getNextStartTime();
+                    const now = new Date();
+                    const timeUntilStart = nextStart - now;
+                    
+                    if (timeUntilStart > 0) {
+                        this.reminderTimeout = setTimeout(() => {
+                            this.showReminder();
+                            this.scheduleReminder(); // Schedule next reminder
+                        }, timeUntilStart);
+                    }
+                }
+            }
+            
+            clearReminder() {
+                if (this.reminderTimeout) {
+                    clearTimeout(this.reminderTimeout);
+                    this.reminderTimeout = null;
+                }
+            }
+            
+            isWithinReminderHours() {
+                const now = new Date();
+                const currentTime = now.getHours() * 60 + now.getMinutes();
+                
+                const [startHours, startMinutes] = this.startTime.split(':').map(Number);
+                const [endHours, endMinutes] = this.endTime.split(':').map(Number);
+                
+                const startTimeMinutes = startHours * 60 + startMinutes;
+                const endTimeMinutes = endHours * 60 + endMinutes;
+                
+                return currentTime >= startTimeMinutes && currentTime <= endTimeMinutes;
+            }
+            
+            getNextStartTime() {
+                const now = new Date();
+                const [startHours, startMinutes] = this.startTime.split(':').map(Number);
+                
+                const nextStart = new Date(now);
+                nextStart.setHours(startHours, startMinutes, 0, 0);
+                
+                if (nextStart < now) {
+                    nextStart.setDate(nextStart.getDate() + 1);
+                }
+                
+                return nextStart;
+            }
+            
+            showReminder() {
+                // Check if browser supports notifications
+                if ('Notification' in window) {
+                    if (Notification.permission === 'granted') {
+                        this.createNotification();
+                    } else if (Notification.permission !== 'denied') {
+                        Notification.requestPermission().then(permission => {
+                            if (permission === 'granted') {
+                                this.createNotification();
+                            }
+                        });
+                    }
+                }
+                
+                // Also show an alert for browsers that don't support notifications
+                // or if permission is denied
+                alert('Water Reminder: Time to drink some water!');
+            }
+            
+            createNotification() {
+                const notification = new Notification('Water Reminder', {
+                    body: 'Time to drink some water! Stay hydrated.',
+                    icon: '/static/water-icon.png'
+                });
+                
+                notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                };
+            }
+            
+            async addWater(amount) {
+                // Don't allow negative water amount
+                if (this.currentWater + amount < 0) {
+                    this.currentWater = 0;
+                } else {
+                    this.currentWater += amount;
+                }
+                
+                this.updateWaterDisplay();
+                
+                try {
+                    const response = await fetch('/water/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            amount: this.currentWater
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.waterHistory = data.history || [];
+                        this.renderWaterHistory();
+                    } else {
+                        console.error('Failed to update water data');
+                    }
+                } catch (error) {
+                    console.error('Error updating water data:', error);
+                }
+            }
+            
+            updateWaterDisplay() {
+                // Update goal display
+                this.waterGoalEl.textContent = this.waterGoal;
+                
+                // Update current amount
+                this.waterCurrentEl.textContent = this.currentWater;
+                
+                // Calculate remaining
+                const remaining = Math.max(0, this.waterGoal - this.currentWater);
+                this.waterRemainingEl.textContent = remaining;
+                
+                // Calculate percentage
+                const percentage = Math.min(100, Math.round((this.currentWater / this.waterGoal) * 100));
+                
+                // Update water level visualization
+                this.waterLevelEl.style.height = `${percentage}%`;
+                this.waterPercentageEl.textContent = `${percentage}%`;
+            }
+            
+            renderWaterHistory() {
+                this.waterHistoryEl.innerHTML = '';
+                
+                if (this.waterHistory.length === 0) {
+                    this.waterHistoryEl.innerHTML = '<p class="no-data">No history data available</p>';
+                    return;
+                }
+                
+                // Sort history by date (newest first)
+                const sortedHistory = [...this.waterHistory].sort((a, b) => 
+                    new Date(b.date) - new Date(a.date)
+                );
+                
+                // Show last 7 days
+                const recentHistory = sortedHistory.slice(0, 7);
+                
+                recentHistory.forEach(day => {
+                    const percentage = Math.min(100, Math.round((day.amount / this.waterGoal) * 100));
+                    
+                    // Format date
+                    const date = new Date(day.date);
+                    const formattedDate = date.toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                    
+                    const dayElement = document.createElement('div');
+                    dayElement.className = 'water-day';
+                    dayElement.innerHTML = `
+                        <div class="water-day-date">${formattedDate}</div>
+                        <div class="water-day-progress">
+                            <div class="water-day-bar" style="width: ${percentage}%"></div>
+                        </div>
+                        <div class="water-day-amount">${day.amount} ml</div>
+                    `;
+                    
+                    this.waterHistoryEl.appendChild(dayElement);
+                });
+            }
+        }
+        
+        // Initialize everything
+        const starsAnimation = new StarsAnimation();
+        const neonAnimation = new NeonAnimation();
+        const waterTracker = new WaterTracker();
+    </script>
+</body>
+</html>

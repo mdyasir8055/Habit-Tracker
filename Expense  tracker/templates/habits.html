@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tracker - Life Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="dark">
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="sparkle">✨</span>
+                <h1>Life Manager</h1>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('home') }}" class="nav-link">Dashboard</a>
+                <a href="{{ url_for('expenses_page') }}" class="nav-link">Expenses</a>
+                <a href="{{ url_for('habits_page') }}" class="nav-link active">Habits</a>
+                <a href="{{ url_for('water_page') }}" class="nav-link">Water Tracker</a>
+                <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
+                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Canvas Backgrounds -->
+    <canvas id="starsCanvas"></canvas>
+    <canvas id="neonCanvas"></canvas>
+
+    <!-- Main Content -->
+    <div class="container">
+        <header class="header">
+            <h1>Habit Tracker</h1>
+            <p>Build better habits, one day at a time. Track your progress and stay motivated.</p>
+        </header>
+
+        <div class="grid">
+            <!-- Add Habit Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Add New Habit</h2>
+                    <p>Create a new habit to track</p>
+                </div>
+                <div class="card-content">
+                    <form id="habit-form" class="form">
+                        <div class="form-group">
+                            <label for="habit-name">Habit Name</label>
+                            <input type="text" id="habit-name" required placeholder="Enter habit name">
+                        </div>
+                        <div class="form-group">
+                            <label for="habit-category">Category</label>
+                            <select id="habit-category" required>
+                                <option value="personal">Personal</option>
+                                <option value="work">Work</option>
+                                <option value="health">Health</option>
+                                <option value="fitness">Fitness</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="habit-frequency">Frequency</label>
+                            <select id="habit-frequency" required>
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="button">Add Habit</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Statistics</h2>
+                    <p>Your habit tracking overview</p>
+                </div>
+                <div class="card-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-icon">📊</span>
+                            <div>
+                                <p class="stat-label">Total Habits</p>
+                                <p class="stat-value" id="total-habits">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon">✅</span>
+                            <div>
+                                <p class="stat-label">Completed Today</p>
+                                <p class="stat-value" id="completed-today">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon">🔥</span>
+                            <div>
+                                <p class="stat-label">Longest Streak</p>
+                                <p class="stat-value" id="longest-streak">0 days</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon">📈</span>
+                            <div>
+                                <p class="stat-label">Completion Rate</p>
+                                <p class="stat-value" id="completion-rate">0%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Habits List -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Your Habits</h2>
+                <p id="habits-count">Total: 0 habits</p>
+            </div>
+            <div class="card-content">
+                <div class="tabs" id="category-tabs">
+                    <button class="tab active" data-category="all">All</button>
+                    <button class="tab" data-category="personal">Personal</button>
+                    <button class="tab" data-category="work">Work</button>
+                    <button class="tab" data-category="health">Health</button>
+                    <button class="tab" data-category="fitness">Fitness</button>
+                </div>
+                <div class="habits-container" id="habits-container">
+                    <!-- Habits will be loaded here -->
+                    <p class="no-habits">No habits found</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        
+        // Check for saved theme preference or default to dark
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        body.className = savedTheme;
+        themeToggle.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+        
+        // Toggle theme
+        themeToggle.addEventListener('click', () => {
+            if (body.className === 'dark') {
+                body.className = 'light';
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.className = 'dark';
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+        
+        // Canvas animations
+        class StarsAnimation {
+            constructor() {
+                this.canvas = document.getElementById('starsCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.stars = [];
+                this.resize();
+                this.init();
+                this.animate();
+                
+                window.addEventListener('resize', () => this.resize());
+            }
+            
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.init();
+            }
+            
+            init() {
+                this.stars = [];
+                const numStars = Math.floor(this.canvas.width * this.canvas.height / 1000);
+                
+                for (let i = 0; i < numStars; i++) {
+                    this.stars.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        radius: Math.random() * 1.5,
+                        opacity: Math.random() * 0.5 + 0.5
+                    });
+                }
+            }
+            
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.stars.forEach(star => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+                    this.ctx.fill();
+                    
+                    // Twinkle effect
+                    star.opacity += Math.random() * 0.01 - 0.005;
+                    star.opacity = Math.max(0.5, Math.min(1, star.opacity));
+                });
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        class NeonAnimation {
+            constructor() {
+                this.canvas = document.getElementById('neonCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.particles = [];
+                this.resize();
+                this.init();
+                this.animate();
+                
+                window.addEventListener('resize', () => this.resize());
+            }
+            
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.init();
+            }
+            
+            init() {
+                this.particles = [];
+                const numParticles = 50;
+                
+                for (let i = 0; i < numParticles; i++) {
+                    this.particles.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        size: Math.random() * 2 + 1,
+                        speedX: Math.random() * 1 - 0.5,
+                        speedY: Math.random() * 1 - 0.5,
+                        color: this.getRandomColor()
+                    });
+                }
+            }
+            
+            getRandomColor() {
+                const colors = ['#9333ea', '#ec4899', '#10b981', '#3b82f6'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.particles.forEach(particle => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    this.ctx.fillStyle = particle.color;
+                    this.ctx.fill();
+                    
+                    // Move particles
+                    particle.x += particle.speedX;
+                    particle.y += particle.speedY;
+                    
+                    // Bounce off edges
+                    if (particle.x < 0 || particle.x > this.canvas.width) {
+                        particle.speedX *= -1;
+                    }
+                    
+                    if (particle.y < 0 || particle.y > this.canvas.height) {
+                        particle.speedY *= -1;
+                    }
+                });
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        // Habit Tracker Class
+        class HabitTracker {
+            constructor() {
+                this.habits = [];
+                this.activeCategory = 'all';
+                
+                // Initialize
+                this.initEventListeners();
+                this.loadHabits();
+            }
+            
+            initEventListeners() {
+                // Form submission
+                document.getElementById('habit-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addHabit();
+                });
+                
+                // Category tabs
+                document.querySelectorAll('#category-tabs .tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        document.querySelectorAll('#category-tabs .tab').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        this.activeCategory = tab.getAttribute('data-category');
+                        this.renderHabits();
+                    });
+                });
+            }
+            
+            async loadHabits() {
+                try {
+                    const response = await fetch('/habits/data');
+                    if (response.ok) {
+                        this.habits = await response.json();
+                        this.renderHabits();
+                        this.updateStats();
+                    } else {
+                        console.error('Failed to load habits');
+                    }
+                } catch (error) {
+                    console.error('Error loading habits:', error);
+                }
+            }
+            
+            async addHabit() {
+                const name = document.getElementById('habit-name').value;
+                const category = document.getElementById('habit-category').value;
+                const frequency = document.getElementById('habit-frequency').value;
+                
+                if (!name || !category || !frequency) {
+                    alert('Please fill in all fields');
+                    return;
+                }
+                
+                const newHabit = {
+                    name,
+                    category,
+                    frequency
+                };
+                
+                try {
+                    const response = await fetch('/habits/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(newHabit)
+                    });
+                    
+                    if (response.ok) {
+                        const savedHabit = await response.json();
+                        this.habits.push(savedHabit);
+                        this.renderHabits();
+                        this.updateStats();
+                        
+                        // Reset form
+                        document.getElementById('habit-form').reset();
+                    } else {
+                        console.error('Failed to add habit');
+                    }
+                } catch (error) {
+                    console.error('Error adding habit:', error);
+                }
+            }
+            
+            async toggleHabit(id) {
+                try {
+                    const response = await fetch(`/habits/${id}/toggle`, {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        const updatedHabit = await response.json();
+                        const index = this.habits.findIndex(h => h.id === id);
+                        if (index !== -1) {
+                            this.habits[index] = updatedHabit;
+                        }
+                        this.renderHabits();
+                        this.updateStats();
+                    } else {
+                        console.error('Failed to toggle habit');
+                    }
+                } catch (error) {
+                    console.error('Error toggling habit:', error);
+                }
+            }
+            
+            async deleteHabit(id) {
+                if (!confirm('Are you sure you want to delete this habit?')) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/habits/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        this.habits = this.habits.filter(habit => habit.id !== id);
+                        this.renderHabits();
+                        this.updateStats();
+                    } else {
+                        console.error('Failed to delete habit');
+                    }
+                } catch (error) {
+                    console.error('Error deleting habit:', error);
+                }
+            }
+            
+            renderHabits() {
+                const container = document.getElementById('habits-container');
+                container.innerHTML = '';
+                
+                const filteredHabits = this.activeCategory === 'all'
+                    ? this.habits
+                    : this.habits.filter(h => h.category === this.activeCategory);
+                
+                if (filteredHabits.length === 0) {
+                    container.innerHTML = '<p class="no-habits">No habits found</p>';
+                } else {
+                    const today = new Date().toISOString().split('T')[0];
+                    
+                    filteredHabits.forEach(habit => {
+                        const isCompleted = habit.completedDates && habit.completedDates.includes(today);
+                        const habitElement = document.createElement('div');
+                        habitElement.className = 'habit-item';
+                        
+                        // Get category icon
+                        const categoryIcon = this.getCategoryIcon(habit.category);
+                        
+                        habitElement.innerHTML = `
+                            <div class="habit-content">
+                                <button class="toggle-button ${isCompleted ? 'completed' : ''}"
+                                        onclick="habitTracker.toggleHabit('${habit.id}')">
+                                    ${isCompleted ? '✓' : '○'}
+                                </button>
+                                <div class="habit-info">
+                                    <p class="habit-name">${habit.name}</p>
+                                    <p class="habit-meta">
+                                        ${habit.frequency} • ${habit.category}
+                                        ${habit.streak > 0 ? ` • 🔥 ${habit.streak} day streak` : ''}
+                                    </p>
+                                </div>
+                                <button class="delete-button" 
+                                        onclick="habitTracker.deleteHabit('${habit.id}')">
+                                    🗑️
+                                </button>
+                            </div>
+                            <div class="habit-progress ${isCompleted ? 'completed' : ''}"></div>
+                        `;
+                        container.appendChild(habitElement);
+                    });
+                }
+                
+                // Update habits count
+                document.getElementById('habits-count').textContent = `Total: ${filteredHabits.length} habit${filteredHabits.length !== 1 ? 's' : ''}`;
+            }
+            
+            getCategoryIcon(category) {
+                const icons = {
+                    personal: '👤',
+                    work: '💼',
+                    health: '❤️',
+                    fitness: '🏋️'
+                };
+                
+                return icons[category] || '📝';
+            }
+            
+            updateStats() {
+                // Total habits
+                document.getElementById('total-habits').textContent = this.habits.length;
+                
+                // Completed today
+                const today = new Date().toISOString().split('T')[0];
+                const completedToday = this.habits.filter(habit => 
+                    habit.completedDates && habit.completedDates.includes(today)
+                ).length;
+                
+                document.getElementById('completed-today').textContent = completedToday;
+                
+                // Longest streak
+                const longestStreak = this.habits.reduce((max, habit) => 
+                    Math.max(max, habit.streak || 0), 0);
+                
+                document.getElementById('longest-streak').textContent = `${longestStreak} day${longestStreak !== 1 ? 's' : ''}`;
+                
+                // Completion rate
+                const completionRate = this.habits.length > 0 
+                    ? Math.round((completedToday / this.habits.length) * 100) 
+                    : 0;
+                
+                document.getElementById('completion-rate').textContent = `${completionRate}%`;
+            }
+        }
+        
+        // Initialize everything
+        const starsAnimation = new StarsAnimation();
+        const neonAnimation = new NeonAnimation();
+        const habitTracker = new HabitTracker();
+    </script>
+</body>
+</html>
