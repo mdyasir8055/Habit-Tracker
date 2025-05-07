@@ -2,9 +2,32 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, f
 import json
 import os
 import uuid
+import logging
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
+
+# Set up Twilio for SMS reminders (we'll initialize the client later)
+try:
+    from twilio.rest import Client
+    TWILIO_AVAILABLE = True
+except ImportError:
+    TWILIO_AVAILABLE = False
+    logging.warning("Twilio package not installed. SMS reminders will be disabled.")
+
+# Twilio configuration (replace with your actual credentials in production)
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', 'your_account_sid')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', 'your_auth_token')
+TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '+1234567890')
+
+# Initialize Twilio client if available
+twilio_client = None
+if TWILIO_AVAILABLE and TWILIO_ACCOUNT_SID != 'your_account_sid':
+    try:
+        twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+    except Exception as e:
+        logging.error(f"Failed to initialize Twilio client: {e}")
+        TWILIO_AVAILABLE = False
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'  # Change this to a random secret key in production
@@ -76,6 +99,28 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def send_sms_reminder(to_number, message):
+    """Send an SMS reminder using Twilio"""
+    if not TWILIO_AVAILABLE or not twilio_client:
+        logging.warning("Twilio is not available. SMS not sent.")
+        return False
+    
+    if not to_number:
+        logging.warning("No phone number provided. SMS not sent.")
+        return False
+    
+    try:
+        message = twilio_client.messages.create(
+            body=message,
+            from_=TWILIO_PHONE_NUMBER,
+            to=to_number
+        )
+        logging.info(f"SMS sent successfully: {message.sid}")
+        return True
+    except Exception as e:
+        logging.error(f"Failed to send SMS: {e}")
+        return False
+
 # Routes
 @app.route('/')
 def home():
@@ -110,6 +155,7 @@ def signup():
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
         weight = request.form.get('weight')
+        mobile = request.form.get('mobile')
         
         if password != confirm_password:
             flash('Passwords do not match', 'error')
@@ -139,6 +185,7 @@ def signup():
             'email': email,
             'password': generate_password_hash(password),
             'weight': weight,
+            'mobile': mobile if mobile else None,
             'created_at': datetime.now().isoformat()
         }
         
@@ -191,6 +238,7 @@ def profile():
         current_password = request.form.get('current_password')
         new_password = request.form.get('new_password')
         weight = request.form.get('weight')
+        mobile = request.form.get('mobile')
         
         if current_password and new_password:
             if check_password_hash(user['password'], current_password):
@@ -226,6 +274,15 @@ def profile():
                             flash('Weight updated successfully', 'success')
             except ValueError:
                 flash('Please enter a valid weight', 'error')
+        
+        # Handle mobile number update
+        if mobile != user.get('mobile'):
+            # Simple validation for mobile number format
+            if mobile and not mobile.startswith('+'):
+                flash('Mobile number should include country code (e.g., +1234567890)', 'error')
+            else:
+                user['mobile'] = mobile if mobile else None
+                flash('Mobile number updated successfully', 'success')
         
         save_users(users)
     
@@ -514,6 +571,43 @@ def update_water_goal():
     save_water(water_data)
     
     return jsonify(water_data[user_id])
+
+@app.route('/water/send-reminder', methods=['POST'])
+@login_required
+def send_water_reminder():
+    """Send an SMS reminder to drink water"""
+    users = load_users()
+    user = next((user for user in users if user['id'] == session['user_id']), None)
+    
+    if not user or not user.get('mobile'):
+        return jsonify({'success': False, 'message': 'No mobile number found'}), 400
+    
+    water_data = load_water()
+    user_id = session['user_id']
+    
+    if user_id not in water_data:
+        return jsonify({'success': False, 'message': 'Water data not found'}), 404
+    
+    # Calculate remaining water needed
+    current = water_data[user_id]['current']
+    goal = water_data[user_id]['goal']
+    remaining = max(0, goal - current)
+    
+    # Create a personalized message
+    message = f"Hi {user['username']}! 💧 Time to hydrate! You've had {current}ml of water today. "
+    
+    if remaining > 0:
+        message += f"You still need {remaining}ml to reach your daily goal of {goal}ml."
+    else:
+        message += f"Great job! You've reached your daily goal of {goal}ml."
+    
+    # Send the SMS
+    success = send_sms_reminder(user['mobile'], message)
+    
+    if success:
+        return jsonify({'success': True, 'message': 'Reminder sent successfully'})
+    else:
+        return jsonify({'success': False, 'message': 'Failed to send reminder'}), 500
 
 # Notes routes
 @app.route('/notes')

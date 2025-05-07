@@ -338,11 +338,17 @@
                 <div class="card-content">
                     <div class="water-reminder-settings">
                         <div class="reminder-toggle">
-                            <p>Enable Reminders</p>
+                            <p>Enable Browser Reminders</p>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="reminder-toggle">
                                 <span class="toggle-slider"></span>
                             </label>
+                        </div>
+                        
+                        <div class="reminder-toggle" style="margin-top: 1rem;">
+                            <p>Send SMS Reminder Now</p>
+                            <button id="send-sms-reminder" class="button">Send SMS</button>
+                            <p class="form-info" style="margin-top: 0.5rem;">Make sure your mobile number is set in your profile. SMS reminders use Twilio.</p>
                         </div>
                         
                         <div class="form-group reminder-interval">
@@ -588,6 +594,11 @@
                         this.clearReminder();
                     }
                 });
+                
+                // SMS reminder button
+                document.getElementById('send-sms-reminder').addEventListener('click', () => {
+                    this.sendSmsReminder();
+                });
             }
             
             async loadWaterData() {
@@ -739,6 +750,36 @@
                     window.focus();
                     notification.close();
                 };
+            }
+            
+            async sendSmsReminder() {
+                try {
+                    const smsButton = document.getElementById('send-sms-reminder');
+                    smsButton.disabled = true;
+                    smsButton.textContent = 'Sending...';
+                    
+                    const response = await fetch('/water/send-reminder', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        alert('SMS reminder sent successfully!');
+                    } else {
+                        alert(`Failed to send SMS: ${result.message}`);
+                    }
+                } catch (error) {
+                    console.error('Error sending SMS reminder:', error);
+                    alert('Error sending SMS reminder. Please check your mobile number in profile settings.');
+                } finally {
+                    const smsButton = document.getElementById('send-sms-reminder');
+                    smsButton.disabled = false;
+                    smsButton.textContent = 'Send SMS';
+                }
             }
             
             async addWater(amount) {
