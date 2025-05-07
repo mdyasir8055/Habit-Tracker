@@ -600,14 +600,19 @@
             renderCategoryChart() {
                 const ctx = document.getElementById('categoryChart').getContext('2d');
                 
+                // Filter only expenses (positive amounts)
+                const onlyExpenses = this.expenses.filter(expense => 
+                    expense.type === 'expense' || expense.amount > 0
+                );
+                
                 // Limit to top 5 categories for better performance
                 const categoryData = {};
-                this.expenses.forEach(expense => {
+                onlyExpenses.forEach(expense => {
                     const category = expense.category;
                     if (!categoryData[category]) {
                         categoryData[category] = 0;
                     }
-                    categoryData[category] += expense.amount;
+                    categoryData[category] += Math.abs(expense.amount);
                 });
                 
                 // Sort categories by amount and take top 5
@@ -685,9 +690,14 @@
             renderTimeChart() {
                 const ctx = document.getElementById('timeChart').getContext('2d');
                 
+                // Filter only expenses (positive amounts)
+                const onlyExpenses = this.expenses.filter(expense => 
+                    expense.type === 'expense' || expense.amount > 0
+                );
+                
                 // Group expenses by date and limit to last 10 days for better performance
                 const timeData = {};
-                const sortedExpenses = [...this.expenses].sort((a, b) => new Date(a.date) - new Date(b.date));
+                const sortedExpenses = [...onlyExpenses].sort((a, b) => new Date(a.date) - new Date(b.date));
                 
                 // Get only the last 10 days with data
                 const uniqueDates = [...new Set(sortedExpenses.map(e => e.date.split('T')[0]))];
@@ -699,7 +709,7 @@
                         if (!timeData[date]) {
                             timeData[date] = 0;
                         }
-                        timeData[date] += expense.amount;
+                        timeData[date] += Math.abs(expense.amount);
                     }
                 });
                 
@@ -786,22 +796,27 @@
             }
             
             updateAnalyticsSummary() {
+                // Filter only expenses (positive amounts)
+                const onlyExpenses = this.expenses.filter(expense => 
+                    expense.type === 'expense' || expense.amount > 0
+                );
+                
                 // Calculate total spending
-                const totalSpending = this.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+                const totalSpending = onlyExpenses.reduce((sum, expense) => sum + Math.abs(expense.amount), 0);
                 document.getElementById('totalSpending').textContent = this.formatCurrency(totalSpending);
                 
                 // Calculate average daily spending
-                const dates = [...new Set(this.expenses.map(expense => expense.date.split('T')[0]))];
+                const dates = [...new Set(onlyExpenses.map(expense => expense.date.split('T')[0]))];
                 const averageDaily = dates.length > 0 ? totalSpending / dates.length : 0;
                 document.getElementById('averageDaily').textContent = this.formatCurrency(averageDaily);
                 
                 // Find highest category
                 const categoryTotals = {};
-                this.expenses.forEach(expense => {
+                onlyExpenses.forEach(expense => {
                     if (!categoryTotals[expense.category]) {
                         categoryTotals[expense.category] = 0;
                     }
-                    categoryTotals[expense.category] += expense.amount;
+                    categoryTotals[expense.category] += Math.abs(expense.amount);
                 });
                 
                 let highestCategory = 'None';
@@ -819,12 +834,12 @@
                 
                 // Find highest spending day
                 const dailyTotals = {};
-                this.expenses.forEach(expense => {
+                onlyExpenses.forEach(expense => {
                     const date = expense.date.split('T')[0];
                     if (!dailyTotals[date]) {
                         dailyTotals[date] = 0;
                     }
-                    dailyTotals[date] += expense.amount;
+                    dailyTotals[date] += Math.abs(expense.amount);
                 });
                 
                 let highestDay = 'None';
@@ -973,8 +988,16 @@
             async addExpense() {
                 const description = document.getElementById('expense-description').value;
                 const amount = parseFloat(document.getElementById('expense-amount').value);
-                const category = document.getElementById('expense-category').value;
                 const date = document.getElementById('expense-date').value;
+                const transactionType = document.getElementById('expense-type').checked ? 'expense' : 'income';
+                
+                // Get the appropriate category based on transaction type
+                let category;
+                if (transactionType === 'expense') {
+                    category = document.getElementById('expense-category').value;
+                } else {
+                    category = document.getElementById('income-category').value;
+                }
                 
                 if (!description || isNaN(amount) || amount <= 0 || !category || !date) {
                     alert('Please fill in all fields correctly');
@@ -985,7 +1008,8 @@
                     description,
                     amount,
                     category,
-                    date
+                    date,
+                    type: transactionType
                 };
                 
                 try {
@@ -1054,6 +1078,9 @@
                         const expenseElement = document.createElement('div');
                         expenseElement.className = 'expense-item';
                         
+                        // Determine if it's an expense or income
+                        const isIncome = expense.type === 'income' || expense.amount < 0;
+                        
                         // Format date
                         const date = new Date(expense.date);
                         const formattedDate = date.toLocaleDateString('en-US', {
@@ -1062,11 +1089,12 @@
                             day: 'numeric'
                         });
                         
-                        // Format amount
+                        // Format amount (absolute value for display)
+                        const amountValue = Math.abs(expense.amount);
                         const formattedAmount = new Intl.NumberFormat('en-US', {
                             style: 'currency',
                             currency: 'USD'
-                        }).format(expense.amount);
+                        }).format(amountValue);
                         
                         // Get category icon
                         const categoryIcon = this.getCategoryIcon(expense.category);
@@ -1079,11 +1107,11 @@
                                 <div class="expense-info">
                                     <p class="expense-description">${expense.description}</p>
                                     <p class="expense-meta">
-                                        ${formattedDate} • ${expense.category}
+                                        ${formattedDate} • ${expense.category} • ${isIncome ? 'Income' : 'Expense'}
                                     </p>
                                 </div>
-                                <div class="expense-amount">
-                                    ${formattedAmount}
+                                <div class="expense-amount ${isIncome ? 'income' : ''}">
+                                    ${isIncome ? '+' : ''}${formattedAmount}
                                 </div>
                                 <button class="delete-button" 
                                         onclick="expenseTracker.deleteExpense('${expense.id}')">
@@ -1096,7 +1124,7 @@
                 }
                 
                 // Update expense count
-                document.getElementById('expense-count').textContent = `Total: ${filteredExpenses.length} expense${filteredExpenses.length !== 1 ? 's' : ''}`;
+                document.getElementById('expense-count').textContent = `Total: ${filteredExpenses.length} transaction${filteredExpenses.length !== 1 ? 's' : ''}`;
             }
             
             getCategoryIcon(category) {
@@ -1114,37 +1142,51 @@
             }
             
             updateStats() {
-                // Calculate total expenses
-                const total = this.expenses.reduce((sum, expense) => sum + expense.amount, 0);
-                document.getElementById('total-expenses').textContent = this.formatCurrency(total);
+                // Filter only expenses (positive amounts) and income (negative amounts)
+                const onlyExpenses = this.expenses.filter(expense => 
+                    expense.type === 'expense' || expense.amount > 0
+                );
+                const onlyIncome = this.expenses.filter(expense => 
+                    expense.type === 'income' || expense.amount < 0
+                );
+                
+                // Calculate total expenses (positive values)
+                const totalExpenses = onlyExpenses.reduce((sum, expense) => sum + Math.abs(expense.amount), 0);
+                // Calculate total income (negative values stored as positive for display)
+                const totalIncome = onlyIncome.reduce((sum, expense) => sum + Math.abs(expense.amount), 0);
+                // Net amount (income - expenses)
+                const netAmount = totalIncome - totalExpenses;
+                
+                // Display total expenses
+                document.getElementById('total-expenses').textContent = this.formatCurrency(totalExpenses);
                 
                 // Calculate this month's expenses
                 const now = new Date();
                 const thisMonth = now.getMonth();
                 const thisYear = now.getFullYear();
                 
-                const monthExpenses = this.expenses.filter(expense => {
+                const monthExpenses = onlyExpenses.filter(expense => {
                     const expenseDate = new Date(expense.date);
                     return expenseDate.getMonth() === thisMonth && expenseDate.getFullYear() === thisYear;
-                }).reduce((sum, expense) => sum + expense.amount, 0);
+                }).reduce((sum, expense) => sum + Math.abs(expense.amount), 0);
                 
                 document.getElementById('month-expenses').textContent = this.formatCurrency(monthExpenses);
                 
                 // Calculate today's expenses
                 const today = new Date().toISOString().split('T')[0];
-                const todayExpenses = this.expenses
+                const todayExpenses = onlyExpenses
                     .filter(expense => expense.date === today)
-                    .reduce((sum, expense) => sum + expense.amount, 0);
+                    .reduce((sum, expense) => sum + Math.abs(expense.amount), 0);
                 
                 document.getElementById('today-expenses').textContent = this.formatCurrency(todayExpenses);
                 
-                // Find top category
+                // Find top expense category
                 const categories = {};
-                this.expenses.forEach(expense => {
+                onlyExpenses.forEach(expense => {
                     if (!categories[expense.category]) {
                         categories[expense.category] = 0;
                     }
-                    categories[expense.category] += expense.amount;
+                    categories[expense.category] += Math.abs(expense.amount);
                 });
                 
                 let topCategory = 'None';

@@ -211,13 +211,21 @@ def add_expense():
     
     expenses = load_expenses()
     
+    # Handle transaction type (expense or income)
+    transaction_type = data.get('type', 'expense')
+    # For income, store the amount as a negative value to differentiate
+    amount = float(data['amount'])
+    if transaction_type == 'income':
+        amount = -amount  # Store income as negative to differentiate from expenses
+    
     new_expense = {
         'id': str(uuid.uuid4()),
         'user_id': session['user_id'],
         'description': data['description'],
-        'amount': float(data['amount']),
+        'amount': amount,
         'category': data.get('category', 'Uncategorized'),
-        'date': data.get('date', datetime.now().isoformat())
+        'date': data.get('date', datetime.now().isoformat()),
+        'type': transaction_type
     }
     
     expenses.append(new_expense)
@@ -349,13 +357,21 @@ def water_page():
 def get_water_data():
     water_data = load_water()
     user_id = session['user_id']
+    today = datetime.now().strftime('%Y-%m-%d')
     
     if user_id not in water_data:
         water_data[user_id] = {
             'goal': 2000,  # Default goal in ml
             'current': 0,
-            'history': []
+            'history': [],
+            'last_update_date': today
         }
+        save_water(water_data)
+    
+    # Check if it's a new day and reset water count if needed
+    if water_data[user_id].get('last_update_date') != today:
+        water_data[user_id]['current'] = 0
+        water_data[user_id]['last_update_date'] = today
         save_water(water_data)
     
     return jsonify(water_data[user_id])
@@ -376,10 +392,18 @@ def update_water():
         water_data[user_id] = {
             'goal': 2000,  # Default goal in ml
             'current': 0,
-            'history': []
+            'history': [],
+            'last_update_date': today
         }
     
+    # Check if it's a new day and reset water count if needed
+    if water_data[user_id].get('last_update_date') != today:
+        water_data[user_id]['current'] = 0
+        # Don't update with the old amount if it's a new day
+        water_data[user_id]['last_update_date'] = today
+    
     water_data[user_id]['current'] = int(data['amount'])
+    water_data[user_id]['last_update_date'] = today
     
     # Update history
     history_entry = next((entry for entry in water_data[user_id]['history'] if entry['date'] == today), None)
@@ -406,13 +430,20 @@ def update_water_goal():
     
     water_data = load_water()
     user_id = session['user_id']
+    today = datetime.now().strftime('%Y-%m-%d')
     
     if user_id not in water_data:
         water_data[user_id] = {
             'goal': 2000,
             'current': 0,
-            'history': []
+            'history': [],
+            'last_update_date': today
         }
+    
+    # Check if it's a new day and reset water count if needed
+    if water_data[user_id].get('last_update_date') != today:
+        water_data[user_id]['current'] = 0
+        water_data[user_id]['last_update_date'] = today
     
     water_data[user_id]['goal'] = int(data['goal'])
     save_water(water_data)
