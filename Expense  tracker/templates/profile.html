@@ -5,7 +5,216 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - Life Manager</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Additional profile-specific styles -->
+    <style>
+        /* Profile Page Specific Styles */
+        .profile-card {
+            max-width: 36rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(16px);
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 2rem;
+            margin: 2rem auto;
+            transition: all 0.3s ease;
+        }
+        
+        body.light .profile-card {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .sparkle {
+            display: inline-block;
+            font-size: 2rem;
+            animation: bounce 2s infinite;
+        }
+        
+        .auth-header h1 {
+            font-size: 2rem;
+            margin: 0.5rem 0;
+            background: linear-gradient(to right, #fff, #ccc);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        
+        body.light .auth-header h1 {
+            background: linear-gradient(to right, #9333ea, #ec4899);
+            background-clip: text;
+            -webkit-background-clip: text;
+        }
+        
+        .auth-header p {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        body.light .auth-header p {
+            color: rgba(0, 0, 0, 0.6);
+        }
+        
+        .profile-info {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .profile-avatar {
+            width: 5rem;
+            height: 5rem;
+            border-radius: 50%;
+            background: linear-gradient(to right, #9333ea, #ec4899);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .profile-details h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .profile-joined {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 0.25rem;
+        }
+        
+        body.light .profile-joined {
+            color: rgba(0, 0, 0, 0.6);
+        }
+        
+        .profile-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 1rem;
+        }
+        
+        body.light .profile-tabs {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .tab.active {
+            background: #9333ea;
+            color: white;
+        }
+        
+        .tab-content {
+            display: block;
+        }
+        
+        .tab-content.hidden {
+            display: none;
+        }
+        
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .auth-button {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: none;
+            background: #9333ea;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+        }
+        
+        .auth-button:hover {
+            background: #7e22ce;
+        }
+        
+        .auth-footer {
+            text-align: center;
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.7);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        body.light .auth-footer {
+            color: rgba(0, 0, 0, 0.6);
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .back-link, .logout-link {
+            display: inline-block;
+            margin-top: 1rem;
+            color: #9333ea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        .back-link:hover, .logout-link:hover {
+            color: #a855f7;
+            text-decoration: underline;
+        }
+        
+        .logout-link {
+            margin-left: 1rem;
+            color: #ef4444;
+        }
+        
+        .logout-link:hover {
+            color: #dc2626;
+        }
+        
+        /* Animations */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        /* Alert Messages */
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .alert-success {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #10b981;
+        }
+        
+        .alert-error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #ef4444;
+        }
+    </style>
 </head>
 <body class="dark">
     <!-- Theme Toggle Button -->
@@ -36,7 +245,12 @@
 
     <!-- Main Content -->
     <div class="container">
-        <div class="auth-card profile-card">
+        <header class="header">
+            <h1>Your Profile</h1>
+            <p>Manage your account settings and preferences</p>
+        </header>
+        
+        <div class="profile-card">
             <div class="auth-header">
                 <div class="sparkle">✨</div>
                 <h1>Your Profile</h1>
