@@ -109,9 +109,20 @@ def signup():
         email = request.form.get('email')
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
+        weight = request.form.get('weight')
         
         if password != confirm_password:
             flash('Passwords do not match', 'error')
+            return render_template('signup.html')
+        
+        # Validate weight
+        try:
+            weight = float(weight)
+            if weight < 30 or weight > 300:
+                flash('Please enter a valid weight between 30 and 300 kg', 'error')
+                return render_template('signup.html')
+        except ValueError:
+            flash('Please enter a valid weight', 'error')
             return render_template('signup.html')
         
         users = load_users()
@@ -127,11 +138,25 @@ def signup():
             'username': username,
             'email': email,
             'password': generate_password_hash(password),
+            'weight': weight,
             'created_at': datetime.now().isoformat()
         }
         
         users.append(new_user)
         save_users(users)
+        
+        # Calculate water goal based on weight (weight in kg * 0.033 = liters, convert to ml)
+        water_goal = int(weight * 0.033 * 1000)
+        
+        # Initialize water data for the new user
+        water_data = load_water()
+        water_data[new_user['id']] = {
+            'goal': water_goal,
+            'current': 0,
+            'history': [],
+            'last_update_date': datetime.now().strftime('%Y-%m-%d')
+        }
+        save_water(water_data)
         
         flash('Account created successfully! Please login.', 'success')
         return redirect(url_for('login'))
@@ -165,6 +190,7 @@ def profile():
         username = request.form.get('username')
         current_password = request.form.get('current_password')
         new_password = request.form.get('new_password')
+        weight = request.form.get('weight')
         
         if current_password and new_password:
             if check_password_hash(user['password'], current_password):
@@ -177,6 +203,29 @@ def profile():
             user['username'] = username
             session['username'] = username
             flash('Username updated successfully', 'success')
+        
+        # Handle weight update
+        if weight:
+            try:
+                weight_value = float(weight)
+                if weight_value < 30 or weight_value > 300:
+                    flash('Please enter a valid weight between 30 and 300 kg', 'error')
+                else:
+                    old_weight = user.get('weight', 70)
+                    user['weight'] = weight_value
+                    
+                    # Update water goal based on new weight
+                    if old_weight != weight_value:
+                        water_data = load_water()
+                        if user['id'] in water_data:
+                            water_goal = int(weight_value * 0.033 * 1000)
+                            water_data[user['id']]['goal'] = water_goal
+                            save_water(water_data)
+                            flash(f'Weight updated and daily water goal adjusted to {water_goal} ml', 'success')
+                        else:
+                            flash('Weight updated successfully', 'success')
+            except ValueError:
+                flash('Please enter a valid weight', 'error')
         
         save_users(users)
     
@@ -359,14 +408,30 @@ def get_water_data():
     user_id = session['user_id']
     today = datetime.now().strftime('%Y-%m-%d')
     
+    # Get user data to access weight
+    users = load_users()
+    current_user = next((user for user in users if user['id'] == user_id), None)
+    
     if user_id not in water_data:
+        # Calculate water goal based on weight if available
+        water_goal = 2000  # Default goal in ml
+        if current_user and 'weight' in current_user:
+            water_goal = int(float(current_user['weight']) * 0.033 * 1000)
+        
         water_data[user_id] = {
-            'goal': 2000,  # Default goal in ml
+            'goal': water_goal,
             'current': 0,
             'history': [],
             'last_update_date': today
         }
         save_water(water_data)
+    else:
+        # Update goal if user weight has changed
+        if current_user and 'weight' in current_user:
+            calculated_goal = int(float(current_user['weight']) * 0.033 * 1000)
+            if water_data[user_id]['goal'] != calculated_goal:
+                water_data[user_id]['goal'] = calculated_goal
+                save_water(water_data)
     
     # Check if it's a new day and reset water count if needed
     if water_data[user_id].get('last_update_date') != today:

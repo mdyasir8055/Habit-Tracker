@@ -136,7 +136,8 @@
             color: rgba(255, 255, 255, 0.7);
         }
         
-        body.light .water-remaining {
+        body.light .water-remaining,
+        body.light .water-goal-info {
             color: rgba(0, 0, 0, 0.6);
         }
         
@@ -306,6 +307,7 @@
                         
                         <div class="water-info">
                             <p class="water-goal">Daily Goal: <span id="water-goal">2000</span> ml</p>
+                            <p class="water-goal-info" style="font-size: 0.85rem; color: rgba(255, 255, 255, 0.7); margin-bottom: 0.5rem;">Based on your weight (weight × 0.033 L)</p>
                             <p class="water-current"><span id="water-current">0</span> ml</p>
                             <p class="water-remaining">Remaining: <span id="water-remaining">2000</span> ml</p>
                         </div>
