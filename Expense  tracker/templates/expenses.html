@@ -414,10 +414,12 @@
             constructor() {
                 this.expenses = [];
                 this.activeCategory = 'all';
+                this.monthlyBudget = 2000; // Default budget
                 
                 // Initialize
                 this.initEventListeners();
                 this.loadExpenses();
+                this.loadBudget();
                 
                 // Set default date to today
                 document.getElementById('expense-date').valueAsDate = new Date();
@@ -504,10 +506,11 @@
                 const setBudgetBtn = document.getElementById('setBudgetBtn');
                 if (setBudgetBtn) {
                     setBudgetBtn.addEventListener('click', () => {
-                        const budget = prompt('Enter your monthly budget:', '2000');
+                        const budget = prompt('Enter your monthly budget:', this.monthlyBudget.toString());
                         if (budget && !isNaN(parseFloat(budget))) {
-                            // In a real app, this would be saved to the server
-                            alert(`Budget set to $${parseFloat(budget).toFixed(2)}`);
+                            const budgetValue = parseFloat(budget);
+                            this.saveBudget(budgetValue);
+                            alert(`Budget set to $${budgetValue.toFixed(2)}`);
                             this.updateBudgetDisplay();
                         }
                     });
@@ -589,6 +592,19 @@
                 } catch (error) {
                     console.error('Error loading expenses:', error);
                 }
+            }
+            
+            loadBudget() {
+                // Try to load budget from localStorage
+                const savedBudget = localStorage.getItem('monthlyBudget');
+                if (savedBudget) {
+                    this.monthlyBudget = parseFloat(savedBudget);
+                }
+            }
+            
+            saveBudget(budget) {
+                this.monthlyBudget = parseFloat(budget);
+                localStorage.setItem('monthlyBudget', this.monthlyBudget.toString());
             }
             
             renderCharts() {
@@ -862,23 +878,25 @@
             }
             
             updateBudgetDisplay() {
-                // For demo purposes, we'll use hardcoded budget values
-                // In a real app, these would come from the server
-                const monthlyBudget = 2000;
                 const currentMonth = new Date().getMonth();
                 const currentYear = new Date().getFullYear();
                 
+                // Filter only expenses (positive amounts)
+                const onlyExpenses = this.expenses.filter(expense => 
+                    expense.type === 'expense' || expense.amount > 0
+                );
+                
                 // Calculate current month's spending
-                const monthlySpending = this.expenses
+                const monthlySpending = onlyExpenses
                     .filter(expense => {
                         const expenseDate = new Date(expense.date);
                         return expenseDate.getMonth() === currentMonth && 
                                expenseDate.getFullYear() === currentYear;
                     })
-                    .reduce((sum, expense) => sum + expense.amount, 0);
+                    .reduce((sum, expense) => sum + Math.abs(expense.amount), 0);
                 
                 // Update budget progress bar
-                const percentage = Math.min(100, (monthlySpending / monthlyBudget) * 100);
+                const percentage = Math.min(100, (monthlySpending / this.monthlyBudget) * 100);
                 const budgetBar = document.getElementById('budgetBar');
                 budgetBar.style.width = `${percentage}%`;
                 
@@ -891,31 +909,35 @@
                 
                 // Update budget text
                 document.getElementById('currentSpending').textContent = this.formatCurrency(monthlySpending);
-                document.getElementById('budgetLimit').textContent = `of ${this.formatCurrency(monthlyBudget)}`;
+                document.getElementById('budgetLimit').textContent = `of ${this.formatCurrency(this.monthlyBudget)}`;
                 
                 // Update category budgets
                 this.updateCategoryBudgets();
             }
             
             updateCategoryBudgets() {
-                // For demo purposes, we'll use hardcoded category budgets
-                // In a real app, these would come from the server
+                // Calculate category budgets as a percentage of the total budget
                 const categoryBudgets = {
-                    'food': 500,
-                    'transportation': 300,
-                    'entertainment': 200,
-                    'utilities': 400,
-                    'shopping': 300,
-                    'health': 200,
-                    'other': 100
+                    'food': this.monthlyBudget * 0.25, // 25% of budget
+                    'transportation': this.monthlyBudget * 0.15, // 15% of budget
+                    'entertainment': this.monthlyBudget * 0.10, // 10% of budget
+                    'utilities': this.monthlyBudget * 0.20, // 20% of budget
+                    'shopping': this.monthlyBudget * 0.15, // 15% of budget
+                    'health': this.monthlyBudget * 0.10, // 10% of budget
+                    'other': this.monthlyBudget * 0.05 // 5% of budget
                 };
                 
                 const currentMonth = new Date().getMonth();
                 const currentYear = new Date().getFullYear();
                 
+                // Filter only expenses (positive amounts)
+                const onlyExpenses = this.expenses.filter(expense => 
+                    expense.type === 'expense' || expense.amount > 0
+                );
+                
                 // Calculate current month's spending by category
                 const categorySpending = {};
-                this.expenses
+                onlyExpenses
                     .filter(expense => {
                         const expenseDate = new Date(expense.date);
                         return expenseDate.getMonth() === currentMonth && 
@@ -925,7 +947,7 @@
                         if (!categorySpending[expense.category]) {
                             categorySpending[expense.category] = 0;
                         }
-                        categorySpending[expense.category] += expense.amount;
+                        categorySpending[expense.category] += Math.abs(expense.amount);
                     });
                 
                 // Define colors for categories
