@@ -1,0 +1,18 @@
+[
+  {
+    "id": "6d259d7a-d704-468c-9792-186c26ddf068",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "password": "hashed_password_string",
+    "mobile": "+1234567890",
+    "created_at": "2023-05-01T10:00:00"
+  },
+  {
+    "id": "32ae59f1-7d7b-4839-b1b4-fd0d9c259aa3",
+    "username": "janedoe",
+    "email": "jane@example.com",
+    "password": "hashed_password_string",
+    "mobile": "+1987654321",
+    "created_at": "2023-05-02T14:30:00"
+  }
+]

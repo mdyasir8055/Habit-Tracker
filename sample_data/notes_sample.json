@@ -1,0 +1,41 @@
+[
+  {
+    "id": "n1b2c3d4-e5f6-4a5b-8c7d-9e0f1a2b3c4d",
+    "user_id": "6d259d7a-d704-468c-9792-186c26ddf068",
+    "title": "Shopping List",
+    "content": "- Milk\n- Eggs\n- Bread\n- Apples\n- Chicken",
+    "color": "#f59e0b",
+    "position": {
+      "x": 100,
+      "y": 150
+    },
+    "created_at": "2023-05-10T09:30:00",
+    "updated_at": "2023-05-12T14:15:00"
+  },
+  {
+    "id": "n2b2c3d4-e5f6-4a5b-8c7d-9e0f1a2b3c4d",
+    "user_id": "6d259d7a-d704-468c-9792-186c26ddf068",
+    "title": "Project Ideas",
+    "content": "1. Mobile app for plant care\n2. Recipe organizer with shopping list\n3. Workout tracker with progress photos",
+    "color": "#10b981",
+    "position": {
+      "x": 350,
+      "y": 200
+    },
+    "created_at": "2023-05-08T16:45:00",
+    "updated_at": "2023-05-08T16:45:00"
+  },
+  {
+    "id": "n3b2c3d4-e5f6-4a5b-8c7d-9e0f1a2b3c4d",
+    "user_id": "32ae59f1-7d7b-4839-b1b4-fd0d9c259aa3",
+    "title": "Meeting Notes",
+    "content": "- Discuss Q2 goals\n- Review marketing campaign\n- Plan team building event\n- Budget review",
+    "color": "#3b82f6",
+    "position": {
+      "x": 200,
+      "y": 300
+    },
+    "created_at": "2023-05-11T10:00:00",
+    "updated_at": "2023-05-11T11:30:00"
+  }
+]

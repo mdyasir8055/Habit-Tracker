@@ -1,0 +1,43 @@
+[
+  {
+    "id": "e1b2c3d4-e5f6-4a5b-8c7d-9e0f1a2b3c4d",
+    "user_id": "6d259d7a-d704-468c-9792-186c26ddf068",
+    "date": "2023-05-15T12:30:00",
+    "amount": 45.99,
+    "category": "food",
+    "description": "Grocery shopping",
+    "type": "expense",
+    "recurring": false
+  },
+  {
+    "id": "a1b2c3d4-e5f6-4a5b-8c7d-9e0f1a2b3c4d",
+    "user_id": "6d259d7a-d704-468c-9792-186c26ddf068",
+    "date": "2023-05-10T09:15:00",
+    "amount": -2000.00,
+    "category": "income",
+    "description": "Monthly salary",
+    "type": "income",
+    "recurring": true,
+    "recurring_interval": "monthly"
+  },
+  {
+    "id": "b1b2c3d4-e5f6-4a5b-8c7d-9e0f1a2b3c4d",
+    "user_id": "6d259d7a-d704-468c-9792-186c26ddf068",
+    "date": "2023-05-12T18:45:00",
+    "amount": 25.50,
+    "category": "entertainment",
+    "description": "Movie tickets",
+    "type": "expense",
+    "recurring": false
+  },
+  {
+    "id": "c1b2c3d4-e5f6-4a5b-8c7d-9e0f1a2b3c4d",
+    "user_id": "32ae59f1-7d7b-4839-b1b4-fd0d9c259aa3",
+    "date": "2023-05-14T14:20:00",
+    "amount": 35.75,
+    "category": "transportation",
+    "description": "Fuel",
+    "type": "expense",
+    "recurring": false
+  }
+]

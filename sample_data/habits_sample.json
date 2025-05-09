@@ -1,0 +1,60 @@
+[
+  {
+    "id": "h1b2c3d4-e5f6-4a5b-8c7d-9e0f1a2b3c4d",
+    "user_id": "6d259d7a-d704-468c-9792-186c26ddf068",
+    "name": "Morning Meditation",
+    "category": "health",
+    "description": "15 minutes of mindfulness meditation",
+    "created_at": "2023-05-01T10:30:00",
+    "streak": 12,
+    "completion_dates": [
+      "2023-05-01",
+      "2023-05-02",
+      "2023-05-03",
+      "2023-05-04",
+      "2023-05-05",
+      "2023-05-06",
+      "2023-05-07",
+      "2023-05-08",
+      "2023-05-09",
+      "2023-05-10",
+      "2023-05-11",
+      "2023-05-12"
+    ]
+  },
+  {
+    "id": "h2b2c3d4-e5f6-4a5b-8c7d-9e0f1a2b3c4d",
+    "user_id": "6d259d7a-d704-468c-9792-186c26ddf068",
+    "name": "Read 30 pages",
+    "category": "personal",
+    "description": "Read at least 30 pages of a book",
+    "created_at": "2023-05-03T18:45:00",
+    "streak": 5,
+    "completion_dates": [
+      "2023-05-03",
+      "2023-05-04",
+      "2023-05-05",
+      "2023-05-06",
+      "2023-05-07"
+    ]
+  },
+  {
+    "id": "h3b2c3d4-e5f6-4a5b-8c7d-9e0f1a2b3c4d",
+    "user_id": "32ae59f1-7d7b-4839-b1b4-fd0d9c259aa3",
+    "name": "Evening Jog",
+    "category": "fitness",
+    "description": "30 minute jog around the neighborhood",
+    "created_at": "2023-05-02T19:00:00",
+    "streak": 8,
+    "completion_dates": [
+      "2023-05-02",
+      "2023-05-03",
+      "2023-05-04",
+      "2023-05-05",
+      "2023-05-06",
+      "2023-05-07",
+      "2023-05-08",
+      "2023-05-09"
+    ]
+  }
+]

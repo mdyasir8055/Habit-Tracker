@@ -1,0 +1,48 @@
+{
+  "6d259d7a-d704-468c-9792-186c26ddf068": {
+    "friends": ["32ae59f1-7d7b-4839-b1b4-fd0d9c259aa3"],
+    "activities": [
+      {
+        "username": "janedoe",
+        "time": "2023-05-15 10:52",
+        "description": "janedoe added you as a friend"
+      },
+      {
+        "username": "janedoe",
+        "time": "2023-05-15 14:30",
+        "description": "janedoe completed a 30 minute jog (8 day streak!)"
+      },
+      {
+        "username": "janedoe",
+        "time": "2023-05-15 16:15",
+        "description": "janedoe updated water intake to 1500ml (75% of daily goal)"
+      }
+    ],
+    "added_dates": {
+      "32ae59f1-7d7b-4839-b1b4-fd0d9c259aa3": "2023-05-15"
+    }
+  },
+  "32ae59f1-7d7b-4839-b1b4-fd0d9c259aa3": {
+    "friends": ["6d259d7a-d704-468c-9792-186c26ddf068"],
+    "activities": [
+      {
+        "username": "johndoe",
+        "time": "2023-05-15 10:52",
+        "description": "You added johndoe as a friend"
+      },
+      {
+        "username": "johndoe",
+        "time": "2023-05-15 09:15",
+        "description": "johndoe completed morning meditation (12 day streak!)"
+      },
+      {
+        "username": "johndoe",
+        "time": "2023-05-15 15:30",
+        "description": "johndoe updated water intake to 1750ml (70% of daily goal)"
+      }
+    ],
+    "added_dates": {
+      "6d259d7a-d704-468c-9792-186c26ddf068": "2023-05-15"
+    }
+  }
+}
