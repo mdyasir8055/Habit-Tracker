@@ -645,14 +645,6 @@ def update_water():
                             key=lambda x: x.get('time', ''),
                             reverse=True
                         )[:50]
-                    
-                    # Limit to most recent 50 activities
-                    if len(friends_data[friend_id]['activities']) > 50:
-                        friends_data[friend_id]['activities'] = sorted(
-                            friends_data[friend_id]['activities'],
-                            key=lambda x: x.get('time', ''),
-                            reverse=True
-                        )[:50]
                 
                 save_friends(friends_data)
     

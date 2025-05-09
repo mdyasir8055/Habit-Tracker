@@ -266,6 +266,7 @@
                 <a href="{{ url_for('habits_page') }}" class="nav-link">Habits</a>
                 <a href="{{ url_for('water_page') }}" class="nav-link">Water Tracker</a>
                 <a href="{{ url_for('notes_page') }}" class="nav-link">Notes</a>
+                <a href="{{ url_for('community_page') }}" class="nav-link">Community</a>
                 <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
                 <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
             </div>
@@ -311,6 +312,13 @@
                 <div class="quick-action-text">
                     <h3>Sticky Notes</h3>
                     <p>Capture your thoughts</p>
+                </div>
+            </a>
+            <a href="{{ url_for('community_page') }}" class="quick-action-card">
+                <div class="quick-action-icon">👥</div>
+                <div class="quick-action-text">
+                    <h3>Community</h3>
+                    <p>Connect with friends</p>
                 </div>
             </a>
         </div>
