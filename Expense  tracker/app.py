@@ -6,6 +6,10 @@ import logging
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Set up Twilio for SMS reminders (we'll initialize the client later)
 try:
