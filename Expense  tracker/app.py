@@ -38,6 +38,7 @@ EXPENSES_FILE = 'expenses.json'
 HABITS_FILE = 'habits.json'
 WATER_FILE = 'water.json'
 NOTES_FILE = 'notes.json'
+FRIENDS_FILE = 'friends.json'
 
 # Helper functions
 def load_users():
@@ -89,6 +90,16 @@ def load_notes():
 def save_notes(notes):
     with open(NOTES_FILE, 'w') as f:
         json.dump(notes, f)
+
+def load_friends():
+    if os.path.exists(FRIENDS_FILE):
+        with open(FRIENDS_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_friends(friends):
+    with open(FRIENDS_FILE, 'w') as f:
+        json.dump(friends, f)
 
 def login_required(f):
     @wraps(f)
@@ -337,6 +348,33 @@ def add_expense():
     expenses.append(new_expense)
     save_expenses(expenses)
     
+    # Add activity for friends to see
+    user_id = session['user_id']
+    friends_data = load_friends()
+    if user_id in friends_data and 'friends' in friends_data[user_id]:
+        users = load_users()
+        current_user = next((user for user in users if user['id'] == user_id), None)
+        
+        if current_user:
+            # Don't show the exact amount for privacy
+            activity_description = f"Added a new {transaction_type}: {data['description']} in {data.get('category', 'Uncategorized')}"
+            
+            # Add activity to each friend's feed
+            for friend_id in friends_data[user_id]['friends']:
+                if friend_id not in friends_data:
+                    friends_data[friend_id] = {'friends': [], 'activities': []}
+                
+                if 'activities' not in friends_data[friend_id]:
+                    friends_data[friend_id]['activities'] = []
+                
+                friends_data[friend_id]['activities'].append({
+                    'username': current_user['username'],
+                    'time': datetime.now().strftime('%Y-%m-%d %H:%M'),
+                    'description': activity_description
+                })
+            
+            save_friends(friends_data)
+    
     return jsonify(new_expense), 201
 
 @app.route('/expenses/<expense_id>', methods=['PUT'])
@@ -418,12 +456,14 @@ def add_habit():
 def toggle_habit(habit_id):
     habits = load_habits()
     today = datetime.now().strftime('%Y-%m-%d')
+    user_id = session['user_id']
     
     for habit in habits:
-        if habit.get('id') == habit_id and habit.get('user_id') == session['user_id']:
+        if habit.get('id') == habit_id and habit.get('user_id') == user_id:
             if 'completedDates' not in habit:
                 habit['completedDates'] = []
             
+            completed = False
             if today in habit['completedDates']:
                 habit['completedDates'].remove(today)
                 # Decrease streak if it was completed today
@@ -433,8 +473,35 @@ def toggle_habit(habit_id):
                 habit['completedDates'].append(today)
                 # Increase streak
                 habit['streak'] = habit.get('streak', 0) + 1
+                completed = True
             
             save_habits(habits)
+            
+            # Add activity for friends to see
+            friends_data = load_friends()
+            if user_id in friends_data and 'friends' in friends_data[user_id]:
+                users = load_users()
+                current_user = next((user for user in users if user['id'] == user_id), None)
+                
+                if current_user:
+                    activity_description = f"{'Completed' if completed else 'Uncompleted'} habit: {habit.get('name', 'Unknown')}"
+                    
+                    # Add activity to each friend's feed
+                    for friend_id in friends_data[user_id]['friends']:
+                        if friend_id not in friends_data:
+                            friends_data[friend_id] = {'friends': [], 'activities': []}
+                        
+                        if 'activities' not in friends_data[friend_id]:
+                            friends_data[friend_id]['activities'] = []
+                        
+                        friends_data[friend_id]['activities'].append({
+                            'username': current_user['username'],
+                            'time': datetime.now().strftime('%Y-%m-%d %H:%M'),
+                            'description': activity_description
+                        })
+                    
+                    save_friends(friends_data)
+            
             return jsonify(habit)
     
     return jsonify({'error': 'Habit not found or unauthorized'}), 404
@@ -524,6 +591,7 @@ def update_water():
         # Don't update with the old amount if it's a new day
         water_data[user_id]['last_update_date'] = today
     
+    old_amount = water_data[user_id]['current']
     water_data[user_id]['current'] = int(data['amount'])
     water_data[user_id]['last_update_date'] = today
     
@@ -539,6 +607,54 @@ def update_water():
         })
     
     save_water(water_data)
+    
+    # Add activity for friends to see if significant change (more than 250ml)
+    if abs(water_data[user_id]['current'] - old_amount) >= 250:
+        friends_data = load_friends()
+        if user_id in friends_data and 'friends' in friends_data[user_id]:
+            users = load_users()
+            current_user = next((user for user in users if user['id'] == user_id), None)
+            
+            if current_user:
+                # Calculate percentage of goal
+                goal = water_data[user_id]['goal']
+                current = water_data[user_id]['current']
+                percentage = min(100, int((current / goal) * 100)) if goal > 0 else 0
+                
+                activity_description = f"Updated water intake to {current}ml ({percentage}% of daily goal)"
+                
+                # Add activity to each friend's feed
+                for friend_id in friends_data[user_id]['friends']:
+                    if friend_id not in friends_data:
+                        friends_data[friend_id] = {'friends': [], 'activities': []}
+                    
+                    if 'activities' not in friends_data[friend_id]:
+                        friends_data[friend_id]['activities'] = []
+                    
+                    # Add new activity
+                    friends_data[friend_id]['activities'].append({
+                        'username': current_user['username'],
+                        'time': datetime.now().strftime('%Y-%m-%d %H:%M'),
+                        'description': activity_description
+                    })
+                    
+                    # Limit to most recent 50 activities
+                    if len(friends_data[friend_id]['activities']) > 50:
+                        friends_data[friend_id]['activities'] = sorted(
+                            friends_data[friend_id]['activities'],
+                            key=lambda x: x.get('time', ''),
+                            reverse=True
+                        )[:50]
+                    
+                    # Limit to most recent 50 activities
+                    if len(friends_data[friend_id]['activities']) > 50:
+                        friends_data[friend_id]['activities'] = sorted(
+                            friends_data[friend_id]['activities'],
+                            key=lambda x: x.get('time', ''),
+                            reverse=True
+                        )[:50]
+                
+                save_friends(friends_data)
     
     return jsonify(water_data[user_id])
 
@@ -608,6 +724,205 @@ def send_water_reminder():
         return jsonify({'success': True, 'message': 'Reminder sent successfully'})
     else:
         return jsonify({'success': False, 'message': 'Failed to send reminder'}), 500
+
+# Community routes
+@app.route('/community')
+@login_required
+def community_page():
+    friends_data = load_friends()
+    user_id = session['user_id']
+    
+    # Initialize friends data if not exists
+    if user_id not in friends_data:
+        friends_data[user_id] = {
+            'friends': [],
+            'activities': []
+        }
+        save_friends(friends_data)
+    
+    # Get user data for all friends
+    users = load_users()
+    water_data = load_water()
+    habits_data = load_habits()
+    
+    friends = []
+    for friend_id in friends_data[user_id]['friends']:
+        friend = next((user for user in users if user['id'] == friend_id), None)
+        if friend:
+            # Get friend's habit streak
+            habit_streak = 0
+            for habit in habits_data:
+                if habit.get('user_id') == friend_id:
+                    habit_streak = max(habit_streak, habit.get('streak', 0))
+            
+            # Get friend's water percentage
+            water_percentage = 0
+            if friend_id in water_data:
+                water_goal = water_data[friend_id].get('goal', 2000)
+                water_current = water_data[friend_id].get('current', 0)
+                water_percentage = min(100, int((water_current / water_goal) * 100)) if water_goal > 0 else 0
+            
+            friends.append({
+                'id': friend_id,
+                'username': friend['username'],
+                'added_at': friends_data[user_id].get('added_dates', {}).get(friend_id, 'Unknown'),
+                'habit_streak': habit_streak,
+                'water_percentage': water_percentage
+            })
+    
+    # Get friend activities (limit to most recent 20)
+    activities = friends_data[user_id].get('activities', [])
+    activities = sorted(activities, key=lambda x: x.get('time', ''), reverse=True)[:20]
+    
+    return render_template('community.html', 
+                          user_id=user_id, 
+                          friends=friends, 
+                          activities=activities)
+
+@app.route('/community/add-friend', methods=['POST'])
+@login_required
+def add_friend():
+    data = request.get_json()
+    friend_id = data.get('friend_id')
+    user_id = session['user_id']
+    
+    if not friend_id:
+        return jsonify({'success': False, 'message': 'Friend ID is required'}), 400
+    
+    # Check if friend ID exists
+    users = load_users()
+    friend = next((user for user in users if user['id'] == friend_id), None)
+    
+    if not friend:
+        return jsonify({'success': False, 'message': 'User not found with this ID'}), 404
+    
+    # Check if trying to add self
+    if friend_id == user_id:
+        return jsonify({'success': False, 'message': 'You cannot add yourself as a friend'}), 400
+    
+    # Load friends data
+    friends_data = load_friends()
+    
+    # Initialize if not exists
+    if user_id not in friends_data:
+        friends_data[user_id] = {
+            'friends': [],
+            'activities': [],
+            'added_dates': {}
+        }
+    
+    # Check if already friends
+    if friend_id in friends_data[user_id]['friends']:
+        return jsonify({'success': False, 'message': 'Already friends with this user'}), 400
+    
+    # Add friend
+    friends_data[user_id]['friends'].append(friend_id)
+    
+    # Add date when added
+    if 'added_dates' not in friends_data[user_id]:
+        friends_data[user_id]['added_dates'] = {}
+    
+    friends_data[user_id]['added_dates'][friend_id] = datetime.now().strftime('%Y-%m-%d')
+    
+    # Add activity
+    if 'activities' not in friends_data[user_id]:
+        friends_data[user_id]['activities'] = []
+    
+    friends_data[user_id]['activities'].append({
+        'username': friend['username'],
+        'time': datetime.now().strftime('%Y-%m-%d %H:%M'),
+        'description': f"You added {friend['username']} as a friend"
+    })
+    
+    # Also add the current user as a friend to the other user (bidirectional)
+    if friend_id not in friends_data:
+        friends_data[friend_id] = {
+            'friends': [],
+            'activities': [],
+            'added_dates': {}
+        }
+    
+    current_user = next((user for user in users if user['id'] == user_id), None)
+    
+    if user_id not in friends_data[friend_id]['friends']:
+        friends_data[friend_id]['friends'].append(user_id)
+        
+        if 'added_dates' not in friends_data[friend_id]:
+            friends_data[friend_id]['added_dates'] = {}
+        
+        friends_data[friend_id]['added_dates'][user_id] = datetime.now().strftime('%Y-%m-%d')
+        
+        if 'activities' not in friends_data[friend_id]:
+            friends_data[friend_id]['activities'] = []
+        
+        friends_data[friend_id]['activities'].append({
+            'username': current_user['username'],
+            'time': datetime.now().strftime('%Y-%m-%d %H:%M'),
+            'description': f"{current_user['username']} added you as a friend"
+        })
+    
+    save_friends(friends_data)
+    
+    return jsonify({'success': True, 'message': 'Friend added successfully'})
+
+@app.route('/community/remove-friend', methods=['POST'])
+@login_required
+def remove_friend():
+    data = request.get_json()
+    friend_id = data.get('friend_id')
+    user_id = session['user_id']
+    
+    if not friend_id:
+        return jsonify({'success': False, 'message': 'Friend ID is required'}), 400
+    
+    # Load friends data
+    friends_data = load_friends()
+    
+    # Check if user has friends data
+    if user_id not in friends_data or 'friends' not in friends_data[user_id]:
+        return jsonify({'success': False, 'message': 'No friends data found'}), 404
+    
+    # Check if they are friends
+    if friend_id not in friends_data[user_id]['friends']:
+        return jsonify({'success': False, 'message': 'Not friends with this user'}), 400
+    
+    # Get usernames for activity
+    users = load_users()
+    friend = next((user for user in users if user['id'] == friend_id), None)
+    current_user = next((user for user in users if user['id'] == user_id), None)
+    
+    # Remove friend
+    friends_data[user_id]['friends'].remove(friend_id)
+    
+    # Add activity
+    if 'activities' not in friends_data[user_id]:
+        friends_data[user_id]['activities'] = []
+    
+    if friend:
+        friends_data[user_id]['activities'].append({
+            'username': friend['username'],
+            'time': datetime.now().strftime('%Y-%m-%d %H:%M'),
+            'description': f"You removed {friend['username']} from your friends"
+        })
+    
+    # Also remove the current user from the other user's friends (bidirectional)
+    if friend_id in friends_data and 'friends' in friends_data[friend_id]:
+        if user_id in friends_data[friend_id]['friends']:
+            friends_data[friend_id]['friends'].remove(user_id)
+            
+            if 'activities' not in friends_data[friend_id]:
+                friends_data[friend_id]['activities'] = []
+            
+            if current_user:
+                friends_data[friend_id]['activities'].append({
+                    'username': current_user['username'],
+                    'time': datetime.now().strftime('%Y-%m-%d %H:%M'),
+                    'description': f"{current_user['username']} removed you from their friends"
+                })
+    
+    save_friends(friends_data)
+    
+    return jsonify({'success': True, 'message': 'Friend removed successfully'})
 
 # Notes routes
 @app.route('/notes')

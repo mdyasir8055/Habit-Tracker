@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community - Life Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .friend-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            margin-bottom: 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        body.light .friend-card {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .friend-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .friend-avatar {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            background: linear-gradient(to right, #9333ea, #ec4899);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .friend-info {
+            flex: 1;
+        }
+        
+        .friend-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .friend-since {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        body.light .friend-since {
+            color: rgba(0, 0, 0, 0.6);
+        }
+        
+        .friend-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .friend-action {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .friend-action:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .friend-action.remove {
+            color: #ef4444;
+        }
+        
+        .friend-action.remove:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+        
+        .add-friend-form {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .add-friend-form input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: inherit;
+        }
+        
+        body.light .add-friend-form input {
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            background: white;
+            color: black;
+        }
+        
+        .friend-stats {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+        
+        .friend-stat {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+        }
+        
+        body.light .friend-stat {
+            color: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        body.light .empty-state {
+            color: rgba(0, 0, 0, 0.6);
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+        
+        .empty-state p {
+            margin-bottom: 1.5rem;
+        }
+        
+        .user-id-display {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        body.light .user-id-display {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .user-id-value {
+            font-family: monospace;
+            font-size: 0.875rem;
+            color: #9333ea;
+        }
+        
+        .copy-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: inherit;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+        }
+        
+        .copy-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 1rem;
+        }
+        
+        body.light .tabs {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .tab.active {
+            background: #9333ea;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="dark">
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="sparkle">✨</span>
+                <h1>Life Manager</h1>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('home') }}" class="nav-link">Dashboard</a>
+                <a href="{{ url_for('expenses_page') }}" class="nav-link">Expenses</a>
+                <a href="{{ url_for('habits_page') }}" class="nav-link">Habits</a>
+                <a href="{{ url_for('water_page') }}" class="nav-link">Water Tracker</a>
+                <a href="{{ url_for('notes_page') }}" class="nav-link">Notes</a>
+                <a href="{{ url_for('community_page') }}" class="nav-link active">Community</a>
+                <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
+                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Canvas Backgrounds -->
+    <canvas id="starsCanvas"></canvas>
+    <canvas id="neonCanvas"></canvas>
+
+    <!-- Main Content -->
+    <div class="container">
+        <header class="header">
+            <h1>Community</h1>
+            <p>Connect with friends and share your progress</p>
+        </header>
+
+        <div class="grid">
+            <!-- Your User ID -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Your User ID</h2>
+                    <p>Share this ID with friends to connect</p>
+                </div>
+                <div class="card-content">
+                    <div class="user-id-display">
+                        <span class="user-id-value">{{ user_id }}</span>
+                        <button class="copy-button" id="copyUserIdBtn">Copy ID</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Friend -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Add Friend</h2>
+                    <p>Enter a friend's user ID to connect</p>
+                </div>
+                <div class="card-content">
+                    <form class="add-friend-form" id="addFriendForm">
+                        <input type="text" id="friendId" placeholder="Enter friend's user ID" required>
+                        <button type="submit" class="button">Add Friend</button>
+                    </form>
+                    
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+
+            <!-- Friends List -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Your Friends</h2>
+                    <p>Manage your connections</p>
+                </div>
+                <div class="card-content">
+                    <div class="tabs">
+                        <button class="tab active" data-tab="friends">Friends</button>
+                        <button class="tab" data-tab="activity">Friend Activity</button>
+                    </div>
+                    
+                    <div class="tab-content active" id="friends-tab">
+                        {% if friends %}
+                            <div class="friends-list">
+                                {% for friend in friends %}
+                                <div class="friend-card">
+                                    <div class="friend-avatar">{{ friend.username[0] }}</div>
+                                    <div class="friend-info">
+                                        <div class="friend-name">{{ friend.username }}</div>
+                                        <div class="friend-since">Friends since {{ friend.added_at }}</div>
+                                        <div class="friend-stats">
+                                            <span class="friend-stat">🔥 {{ friend.habit_streak }} day streak</span>
+                                            <span class="friend-stat">💧 {{ friend.water_percentage }}% hydrated</span>
+                                        </div>
+                                    </div>
+                                    <div class="friend-actions">
+                                        <button class="friend-action remove" data-friend-id="{{ friend.id }}">Remove</button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="empty-state">
+                                <h3>No friends yet</h3>
+                                <p>Add friends using their user ID to see them here</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="tab-content" id="activity-tab">
+                        {% if activities %}
+                            <div class="activity-list">
+                                {% for activity in activities %}
+                                <div class="friend-card">
+                                    <div class="friend-avatar">{{ activity.username[0] }}</div>
+                                    <div class="friend-info">
+                                        <div class="friend-name">{{ activity.username }}</div>
+                                        <div class="friend-since">{{ activity.time }}</div>
+                                        <div class="activity-description">{{ activity.description }}</div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="empty-state">
+                                <h3>No activity yet</h3>
+                                <p>Your friends' activities will appear here</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        
+        // Check for saved theme preference or default to dark
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        body.className = savedTheme;
+        themeToggle.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+        
+        // Toggle theme
+        themeToggle.addEventListener('click', () => {
+            if (body.className === 'dark') {
+                body.className = 'light';
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.className = 'dark';
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+        
+        // Canvas animations
+        class StarsAnimation {
+            constructor() {
+                this.canvas = document.getElementById('starsCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.stars = [];
+                this.resize();
+                this.init();
+                this.animate();
+                
+                window.addEventListener('resize', () => this.resize());
+            }
+            
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.init();
+            }
+            
+            init() {
+                this.stars = [];
+                const numStars = Math.floor(this.canvas.width * this.canvas.height / 1000);
+                
+                for (let i = 0; i < numStars; i++) {
+                    this.stars.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        radius: Math.random() * 1.5,
+                        opacity: Math.random() * 0.5 + 0.5
+                    });
+                }
+            }
+            
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.stars.forEach(star => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+                    this.ctx.fill();
+                    
+                    // Twinkle effect
+                    star.opacity += Math.random() * 0.01 - 0.005;
+                    star.opacity = Math.max(0.5, Math.min(1, star.opacity));
+                });
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        // Initialize animations
+        const starsAnimation = new StarsAnimation();
+        
+        // Copy User ID functionality
+        document.getElementById('copyUserIdBtn').addEventListener('click', function() {
+            const userIdValue = document.querySelector('.user-id-value').textContent;
+            navigator.clipboard.writeText(userIdValue).then(() => {
+                this.textContent = 'Copied!';
+                setTimeout(() => {
+                    this.textContent = 'Copy ID';
+                }, 2000);
+            });
+        });
+        
+        // Add Friend Form
+        document.getElementById('addFriendForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const friendId = document.getElementById('friendId').value.trim();
+            
+            if (!friendId) return;
+            
+            fetch('/community/add-friend', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ friend_id: friendId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload the page to show the new friend
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Failed to add friend');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding friend:', error);
+                alert('An error occurred while adding friend');
+            });
+        });
+        
+        // Remove Friend functionality
+        document.querySelectorAll('.friend-action.remove').forEach(button => {
+            button.addEventListener('click', function() {
+                const friendId = this.getAttribute('data-friend-id');
+                
+                if (confirm('Are you sure you want to remove this friend?')) {
+                    fetch('/community/remove-friend', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ friend_id: friendId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Reload the page to update the friends list
+                            window.location.reload();
+                        } else {
+                            alert(data.message || 'Failed to remove friend');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error removing friend:', error);
+                        alert('An error occurred while removing friend');
+                    });
+                }
+            });
+        });
+        
+        // Tab functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Remove active class from all tabs
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                // Add active class to clicked tab
+                this.classList.add('active');
+                
+                // Hide all tab content
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                // Show the corresponding tab content
+                const tabId = this.getAttribute('data-tab') + '-tab';
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>
