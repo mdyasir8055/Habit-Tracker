@@ -247,6 +247,17 @@
         .water-add-button:hover {
             background: #2563eb;
         }
+        
+        /* Income and Expense color styles */
+        .income-amount {
+            color: #10b981 !important; /* Green color for income */
+            font-weight: bold;
+        }
+        
+        .expense-amount {
+            color: #ef4444 !important; /* Red color for expenses */
+            font-weight: bold;
+        }
     </style>
 </head>
 <body class="dark">
@@ -837,8 +848,8 @@
                                 <p class="recent-item-title">${expense.description}</p>
                                 <p class="recent-item-meta">${formattedDate} • ${expense.category}</p>
                             </div>
-                            <div class="recent-item-amount">
-                                ${formattedAmount}
+                            <div class="recent-item-amount ${expense.type === 'income' || expense.amount < 0 ? 'income-amount' : 'expense-amount'}">
+                                ${expense.type === 'income' || expense.amount < 0 ? '+' : ''}${formattedAmount}
                             </div>
                         `;
                         

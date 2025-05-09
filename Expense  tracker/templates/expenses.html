@@ -7,6 +7,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Income and Expense color styles */
+        .expense-amount.income {
+            color: #10b981; /* Green color for income */
+            font-weight: bold;
+        }
+        
+        .expense-amount.expense {
+            color: #ef4444; /* Red color for expenses */
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body class="dark">
     <!-- Theme Toggle Button -->
@@ -25,6 +37,7 @@
                 <a href="{{ url_for('habits_page') }}" class="nav-link">Habits</a>
                 <a href="{{ url_for('water_page') }}" class="nav-link">Water Tracker</a>
                 <a href="{{ url_for('notes_page') }}" class="nav-link">Notes</a>
+                <a href="{{ url_for('community_page') }}" class="nav-link">Community</a>
                 <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
                 <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
             </div>
@@ -1132,7 +1145,7 @@
                                         ${formattedDate} • ${expense.category} • ${isIncome ? 'Income' : 'Expense'}
                                     </p>
                                 </div>
-                                <div class="expense-amount ${isIncome ? 'income' : ''}">
+                                <div class="expense-amount ${isIncome ? 'income' : 'expense'}">
                                     ${isIncome ? '+' : ''}${formattedAmount}
                                 </div>
                                 <button class="delete-button" 
