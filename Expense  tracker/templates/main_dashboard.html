@@ -787,7 +787,19 @@
                     })
                     .reduce((sum, expense) => sum + expense.amount, 0);
                 
-                document.getElementById('month-expenses').textContent = this.formatCurrency(monthExpenses);
+                // Display month expenses with color based on value
+                const monthExpensesElement = document.getElementById('month-expenses');
+                monthExpensesElement.textContent = this.formatCurrency(Math.abs(monthExpenses));
+                
+                // Add color class based on whether it's income (negative) or expense (positive)
+                if (monthExpenses < 0) {
+                    // It's income (net positive)
+                    monthExpensesElement.className = 'stat-value income-amount';
+                    monthExpensesElement.textContent = '+' + monthExpensesElement.textContent;
+                } else {
+                    // It's expense (net negative)
+                    monthExpensesElement.className = 'stat-value expense-amount';
+                }
                 
                 // Find top category
                 const categories = {};
@@ -832,8 +844,12 @@
                             day: 'numeric'
                         });
                         
-                        // Format amount
-                        const formattedAmount = this.formatCurrency(expense.amount);
+                        // Determine if it's an expense or income
+                        const isIncome = expense.type === 'income' || expense.amount < 0;
+                        
+                        // Format amount (absolute value for display)
+                        const amountValue = Math.abs(expense.amount);
+                        const formattedAmount = this.formatCurrency(amountValue);
                         
                         // Get category icon
                         const categoryIcon = this.getExpenseCategoryIcon(expense.category);
@@ -848,8 +864,8 @@
                                 <p class="recent-item-title">${expense.description}</p>
                                 <p class="recent-item-meta">${formattedDate} • ${expense.category}</p>
                             </div>
-                            <div class="recent-item-amount ${expense.type === 'income' || expense.amount < 0 ? 'income-amount' : 'expense-amount'}">
-                                ${expense.type === 'income' || expense.amount < 0 ? '+' : ''}${formattedAmount}
+                            <div class="recent-item-amount ${isIncome ? 'income-amount' : 'expense-amount'}">
+                                ${isIncome ? '+' : ''}${formattedAmount}
                             </div>
                         `;
                         
